@@ -71,6 +71,7 @@ namespace NBitcoin.RPC
 		walletlock,
 		encryptwallet,
 		validateaddress,
+		walletinfo,
 		[Obsolete("Deprecated in Bitcoin Core 0.16.0 use getblockchaininfo, getnetworkinfo, getwalletinfo or getmininginfo instead")]
 		getinfo,
 		getwalletinfo,
