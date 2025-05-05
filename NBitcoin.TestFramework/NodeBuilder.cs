@@ -304,6 +304,10 @@ namespace NBitcoin.Tests
 			dataDir = Path.Combine(folder, "data");
 			var pass = Hashes.DoubleSHA256(Encoding.UTF8.GetBytes(folder)).ToString();
 			creds = new NetworkCredential(pass, pass);
+			if (NodeImplementation.IsDecred)
+			{
+				creds = new NetworkCredential("user", "pass");
+			}
 			_Config = Path.Combine(dataDir, "bitcoin.conf");
 			ConfigParameters.Import(builder.ConfigParameters, true);
 			ports = new int[2];
@@ -363,6 +367,9 @@ namespace NBitcoin.Tests
 		private void ExtractPorts(int[] ports, string config)
 		{
 			var p = Regex.Match(config, "rpcport=(.*)");
+			if (NodeImplementation.IsDecred) {
+				p = Regex.Match(config, "rpclisten=127.0.0.1:(.*)");
+			}
 			ports[1] = int.Parse(p.Groups[1].Value.Trim());
 		}
 
@@ -443,6 +450,10 @@ namespace NBitcoin.Tests
 		}
 		public RPCClient CreateRPCClient()
 		{
+			if (NodeImplementation.IsDecred)
+			{
+				return new DecredRPCClient(GetRPCAuth(), RPCUri, Network);
+			}
 			return new RPCClient(GetRPCAuth(), RPCUri, Network);
 		}
 
@@ -547,8 +558,21 @@ namespace NBitcoin.Tests
 			configStr.AppendLine(config.ToString());
 			if (NodeImplementation.AdditionalRegtestConfig != null)
 				configStr.AppendLine(NodeImplementation.AdditionalRegtestConfig);
+			if (NodeImplementation.IsDecred)
+			{
+				configStr = new StringBuilder();
+				configStr.AppendLine("rpcuser=user");
+				configStr.AppendLine("rpcpass=pass");
+				configStr.AppendLine("listen=:" + ports[0].ToString());
+				configStr.AppendLine("rpclisten=127.0.0.1:" + ports[1].ToString());
+				configStr.AppendLine("connect=127.0.0.1:19560");
+				configStr.AppendLine("rejectnonstd=1");
+				configStr.AppendLine("whitelist=127.0.0.0/8");
+				configStr.AppendLine("whitelist=::1");
+				configStr.AppendLine("simnet=1");
+			}
 			File.WriteAllText(_Config, configStr.ToString());
-			
+
 			await Run();
 		}
 
@@ -560,7 +584,12 @@ namespace NBitcoin.Tests
 					CreateDefaultWallet();
 
 				string appPath = new FileInfo(this._Builder.BitcoinD).FullName;
+
 				string args = "-conf=bitcoin.conf" + " -datadir=" + dataDir + " -debug=net";
+
+				if (NodeImplementation.IsDecred) {
+					args = "--configfile=" + _Config + " --appdata=" + dataDir + " --debuglevel=debug --notls" + " --txindex";
+				}
 
 				if (_Builder.ShowNodeConsole)
 				{
@@ -652,6 +681,11 @@ namespace NBitcoin.Tests
 
 		public uint256[] Generate(int blockCount)
 		{
+			if (NodeImplementation.IsDecred)
+			{
+				// Decred tests are intended to be run on an already existing test network.
+				return new uint256[blockCount];
+			}
 			uint256[] blockIds = new uint256[blockCount];
 			int generated = 0;
 			while (generated < blockCount)

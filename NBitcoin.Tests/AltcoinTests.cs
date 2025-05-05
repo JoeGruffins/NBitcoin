@@ -63,11 +63,20 @@ namespace NBitcoin.Tests
 		{
 			using (var builder = NodeBuilderEx.Create())
 			{
-				var rpc = builder.CreateNode().CreateRPCClient();
+				var node = builder.CreateNode();
+				var rpc = node.CreateRPCClient();
 				builder.StartAll();
-				var blockHash = (await rpc.GenerateAsync(10))[0];
+				var blockHash = new uint256();
+				if (node.NodeImplementation.IsDecred)
+				{
+					System.Threading.Thread.Sleep(2000);
+					blockHash = rpc.GetBestBlockHash();
+				}
+				else
+				{
+					blockHash = (await rpc.GenerateAsync(10))[0];
+				}
 				var block = rpc.GetBlock(blockHash);
-
 				Transaction walletTx = null;
 				try
 				{
@@ -110,7 +119,14 @@ namespace NBitcoin.Tests
 				var node = builder.CreateNode();
 				builder.StartAll();
 				var rpc = node.CreateRPCClient();
-				await rpc.GenerateAsync(10);
+				if (node.NodeImplementation.IsDecred)
+				{
+					System.Threading.Thread.Sleep(2000);
+				}
+				else
+				{
+					await rpc.GenerateAsync(10);
+				}
 				var hash = await rpc.GetBestBlockHashAsync();
 				var b = await rpc.GetBlockAsync(hash);
 				Assert.NotNull(b);
@@ -136,7 +152,6 @@ namespace NBitcoin.Tests
 		[Trait("UnitTest", "UnitTest")]
 		public void ElementsAddressSerializationTest()
 		{
-
 			var network = Altcoins.Liquid.Instance.Regtest;
 			var address =
 				"el1qqvx2mprx8re8pd7xjeg9tu8w3jllhcty05l0hlyvlsaj0rce90nk97ze47dv3sy356nuxhjlpms73ztf8lalkerz9ndvg0rva";
@@ -357,7 +372,8 @@ namespace NBitcoin.Tests
 
 			await Connect();
 		}
-
+		
+		[Trait("TestOnly", "TestOnly")]
 		[Fact]
 		public void CanSignTransactions()
 		{
@@ -556,7 +572,14 @@ namespace NBitcoin.Tests
 				var node = builder.CreateNode();
 				builder.StartAll();
 				var rpc = node.CreateRPCClient();
-				rpc.Generate(builder.Network.Consensus.CoinbaseMaturity + 1);
+				if (node.NodeImplementation.IsDecred)
+				{
+					System.Threading.Thread.Sleep(2000);
+				}
+				else
+				{
+					rpc.Generate(builder.Network.Consensus.CoinbaseMaturity + 1);
+				}
 				var key = new Key();
 				var addr = key.GetAddress(ScriptPubKeyType.Legacy, builder.Network);
 				var txid = await rpc.SendToAddressAsync(addr, Money.Coins(1.0m));
