@@ -109,7 +109,7 @@ namespace NBitcoin.Tests
 		}
 
 		// decred does not have a createwallet rpc command.
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")]
 		public async Task CanUseMultipleWallets()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -178,7 +178,7 @@ namespace NBitcoin.Tests
 		}
 
 		// decred node/wallet does not have a --rpcauth arg.
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")]
 		public void CanUseRPCAuth()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -244,7 +244,7 @@ namespace NBitcoin.Tests
 		}
 
 		// decred does not have a savemempool rpc command.
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")]
 		public void CanSaveMemPool()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -265,7 +265,7 @@ namespace NBitcoin.Tests
 
 		// decred does not support rpcwhitelist arg and does not return access
 		// forbidden response.
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")]
 		public async Task RPCBatchingCanFallbackIfAccessForbidden()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -310,7 +310,7 @@ namespace NBitcoin.Tests
 		}
 
 		// decred does not support signrawtransactionwithkey rpc command.
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")]
 		public void CanSignWithKey()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -350,7 +350,7 @@ namespace NBitcoin.Tests
 		}
 
 		// decred does not support signrawtransactionwithkey rpc command.
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")]
 		public void CanScanTxoutSet()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -407,7 +407,7 @@ namespace NBitcoin.Tests
 
 		// rpc.SignRawTransactionWithWallet is not compatible with decred;
 		// decred rpc server does not accept named params.
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")]
 		public void CanSignWithWallet()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -447,7 +447,7 @@ namespace NBitcoin.Tests
 		}
 
 		// decred does not support RBF.
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")]
 		public void CanRBFTransaction()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -542,7 +542,7 @@ namespace NBitcoin.Tests
 		}
 
 		// decred does not support getblockstats rpc command.
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")]
 		public void CanGetStatsFromRPC()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -776,7 +776,7 @@ namespace NBitcoin.Tests
 		}
 
 		// decred does not have "testmempoolaccept" rpc.
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")]
 		public void CanCalculateDustCorrectly()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -823,7 +823,7 @@ namespace NBitcoin.Tests
 		}
 
 		// decred does not have importmulti rpc.
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")]
 		public void CanImportMultiAddresses()
 		{
 			// Test cases borrowed from: https://github.com/bitcoin/bitcoin/blob/master/test/functional/wallet_importmulti.py
@@ -1262,7 +1262,7 @@ namespace NBitcoin.Tests
 
 		// decred node performs the block invalidation but the wallet doesn't
 		// get updated for some resaon.
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")]
 		public void InvalidateBlockToRPC()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -1285,7 +1285,7 @@ namespace NBitcoin.Tests
 		}
 
 		// decred does not support batching.
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")]
 		public async Task CanBatchRequestPartiallySucceed()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -1304,7 +1304,7 @@ namespace NBitcoin.Tests
 		}
 
 		// decred does not support batching.
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")]
 		public async Task CanUseBatchedRequests()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -1361,7 +1361,7 @@ namespace NBitcoin.Tests
 		// decred getpeerinfo does not return expected results because the
 		// getpeerinfo rpc request is handled by the wallet which is only
 		// connected to a dcrd node.
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")]
 		public void CanGetPeersInfo()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -1381,7 +1381,7 @@ namespace NBitcoin.Tests
 		}
 
 		// decred node does not support "getmempoolentry" rpc.
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")]
 		public void CanGetMemPoolEntry()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -1446,7 +1446,7 @@ namespace NBitcoin.Tests
 		}
 
 		// decred node does not support "getmempoolentry" rpc.
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")]
 		public void GetMemPoolEntryThrows()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -1460,7 +1460,7 @@ namespace NBitcoin.Tests
 		}
 
 		// decred node does not support "getmempoolentry" rpc.
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")]
 		public void GetMemPoolEntryDoesntThrow()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -1594,7 +1594,7 @@ namespace NBitcoin.Tests
 
 		// decred node does not support "getblockfilter" rpc and
 		// blockfilterindex cli arg. TODO: use "getcfilterv2" rpc.
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")]
 		public async Task GetBlockFilterAsync()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -1629,7 +1629,7 @@ namespace NBitcoin.Tests
 		}
 
 		// decred does not have "testmempoolaccept" rpc.
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")]
 		public void CanTestMempoolAccept()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -1728,7 +1728,7 @@ namespace NBitcoin.Tests
 		}
 
 		// decred does not support cookie auth.
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")]
 		public async Task CanAuthWithCookieFile()
 		{
 #if NOFILEIO
@@ -1795,7 +1795,7 @@ namespace NBitcoin.Tests
 		}
 #endif
 		// decred node does not support "backupwallet" rpc.
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")]
 		public void CanBackupWallet()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -1819,7 +1819,7 @@ namespace NBitcoin.Tests
 		}
 
 		// decred does not support "uptime" rpc.
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")]
 		public async Task CanQueryUptimeAsync()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -1907,7 +1907,7 @@ namespace NBitcoin.Tests
 		}
 
 		// decred does not support psbt.
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")]
 		public void ShouldCreatePSBTAcceptableByRPCAsExpected()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -1989,7 +1989,7 @@ namespace NBitcoin.Tests
 			=> client.SendCommand(RPCOperations.decodepsbt, base64);
 
 		// decred does not support generatetoaddress rpc and psbt.
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")]
 		public void ShouldWalletProcessPSBTAndExtractMempoolAcceptableTX()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -2232,7 +2232,7 @@ namespace NBitcoin.Tests
 		}
 
 		// decred does not have a "createwallet" rpc command.
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")]
 		public void ShouldCreateLoadAndUnloadWallet()
 		{
 			using var builder = NodeBuilderEx.Create();
@@ -2262,7 +2262,7 @@ namespace NBitcoin.Tests
 		}
 
 		// test uses hardcoded btc values
-		[ConditionalNetworkTest(NetworkTestRule.Only, "btc")]
+		[ConditionalNetworkFact(NetworkTestRule.Only, "btc")]
 		public async Task GetBlockVerboseTests()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -2315,7 +2315,7 @@ namespace NBitcoin.Tests
 		}
 
 		// test uses hardcoded dcr values
-		[ConditionalNetworkTest(NetworkTestRule.Only, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Only, "dcr")]
 		public async Task DecredGetBlockVerboseTests()
 		{
 			using (var builder = NodeBuilderEx.Create())

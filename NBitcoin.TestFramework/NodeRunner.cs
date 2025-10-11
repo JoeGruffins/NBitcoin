@@ -34,8 +34,6 @@ public class DecredNodeRunner : NodeRunner
 
     public override int PortsNeeded => 3;
 
-    public static NodeRunner CreateInstance() => new DecredNodeRunner();
-
     public override void StopPreviouslyRunningProcesses(String dataDir)
     {
 
@@ -69,7 +67,7 @@ public class DecredNodeRunner : NodeRunner
         // dcrd. While extraParams provided by the caller would generally apply
         // to dcrwallet, some paramters in extraParams (such as "whitelist")
         // applies to dcrd only.
-        var dcrdOnlyParams = new string[] { "whitelist" };
+        var dcrdOnlyParams = new string[] { "whitelist", "txindex" };
         NodeConfigParameters dcrdExtraParams = new NodeConfigParameters();
         foreach (var param in extraParams)
         {

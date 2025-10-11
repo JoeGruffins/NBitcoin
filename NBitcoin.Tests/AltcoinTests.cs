@@ -419,7 +419,7 @@ namespace NBitcoin.Tests
 			}
 		}
 
-		[ConditionalNetworkTest(NetworkTestRule.Only, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Only, "dcr")]
 		public void DecredCanSerializeAndDeserializeTx()
 		{
 			var network = Decred.Instance.Testnet;

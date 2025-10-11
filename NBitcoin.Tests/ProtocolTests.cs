@@ -243,7 +243,7 @@ namespace NBitcoin.Tests
 		}
 
 		// decred does not have addpeeraddress rpc.
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")]
 		[Trait("Protocol", "Protocol")]
 		public void CanProcessAddressGossip()
 		{
@@ -425,7 +425,7 @@ namespace NBitcoin.Tests
 
 		// decred node does not support "filterload" p2p message and
 		// MSG_MERKLEBLOCK inv type.
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")]
 		[Trait("Protocol", "Protocol")]
 		public void CanGetMerkleRoot()
 		{
@@ -545,7 +545,7 @@ namespace NBitcoin.Tests
 
 		// TODO(confirm): this appears to be meant for btc only?
 		// NodeServerTester uses btc regnet network
-		[ConditionalNetworkTest(NetworkTestRule.Only, "btc")]
+		[ConditionalNetworkFact(NetworkTestRule.Only, "btc")]
 		[Trait("Protocol", "Protocol")]
 		public void CanMaintainChainWithChainBehavior()
 		{

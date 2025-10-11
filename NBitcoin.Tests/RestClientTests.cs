@@ -13,7 +13,7 @@ namespace NBitcoin.Tests
 	{
 		private static readonly Block RegNetGenesisBlock = Network.RegTest.GetGenesis();
 
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")] // decred does not have rest server
 		public async Task CanGetChainInfo()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -25,7 +25,7 @@ namespace NBitcoin.Tests
 			}
 		}
 
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")] // decred does not have rest server
 		public async Task CanCalculateChainWork()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -44,7 +44,7 @@ namespace NBitcoin.Tests
 			}
 		}
 
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")] // decred does not have rest server
 		public async Task CanGetBlock()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -56,7 +56,7 @@ namespace NBitcoin.Tests
 			}
 		}
 
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")] // decred does not have rest server
 		public async Task CanGetBlockHeader()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -75,7 +75,7 @@ namespace NBitcoin.Tests
 			}
 		}
 
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")] // decred does not have rest server
 		public async Task CanGetTransaction()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -91,7 +91,7 @@ namespace NBitcoin.Tests
 			}
 		}
 
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")] // decred does not have rest server
 		public async Task CanGetUTXOsMempool()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -119,7 +119,7 @@ namespace NBitcoin.Tests
 			}
 		}
 
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")] // decred does not have rest server
 		public async Task CanGetUTXOs()
 		{
 			using (var builder = NodeBuilderEx.Create())
@@ -135,7 +135,7 @@ namespace NBitcoin.Tests
 			}
 		}
 
-		[ConditionalNetworkTest(NetworkTestRule.Skip, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Skip, "dcr")] // decred does not have rest server
 		public void ThrowsRestApiClientException()
 		{
 			using (var builder = NodeBuilderEx.Create())
