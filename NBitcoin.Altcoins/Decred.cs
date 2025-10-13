@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 using Blake3;
+using NBitcoin.RPC;
 #if NO_NATIVE_BIGNUM
 using NBitcoin.BouncyCastle.Math;
 #else
@@ -390,12 +391,62 @@ namespace NBitcoin.Altcoins
 			private ChainName chainName;
 			public ChainName ChainName => chainName;
 
+			private string[] unsupportedRPCCommands = {
+				"createwallet"
+			};
+			private RPCError unsupportedRPCCommandError =
+				new RPCError(RPCErrorCode.RPC_METHOD_NOT_FOUND, "rpc command is not supported");
+
 			public DecredConsensusFactory(ChainName chainName)
 			{
 				this.chainName = chainName;
 			}
 
-			public override bool ParseGetBlockRPCRespose(JObject json, bool withFullTx, out BlockHeader blockHeader, out Block block, out List<uint256> txids)
+			public override RPCResponse RPCRequestHook(ref RPCRequest request)
+			{
+				if (unsupportedRPCCommands.Contains(request.Method))
+				{
+					return new RPCResponse(null, unsupportedRPCCommandError);
+				}
+
+				switch (request.Method)
+				{
+					case "sendmany":
+						if (request.Params.Length < 2)
+						{
+							return new RPCResponse(
+								null,
+								new RPCError(RPCErrorCode.RPC_INVALID_PARAMS, "invalid parameters count, must be at least 2 params")
+							);
+						}
+
+						// Set first param (account name) to "default" if
+						// nothing is specified. bitcoin rpc expects an empty
+						// string but dcr expects an account name.
+						if (request.Params[0] as string == "")
+						{
+							request.Params[0] = "default";
+						}
+
+						// Convert amount strings to numbers. dcr rpc expects
+						// numbers.
+						var addressAmounts = request.Params[1] as JObject;
+						foreach (var property in addressAmounts)
+						{
+							if (property.Value.Type == JTokenType.String)
+							{
+								var amountString = property.Value.Value<string>();
+								var amount = float.Parse(amountString);
+								addressAmounts[property.Key] = amount;
+							}
+						}
+						break;
+				}
+
+				return null;
+			}
+
+			public override bool ParseGetBlockRPCResponse(JObject json, bool withFullTx, out BlockHeader blockHeader, out Block block, out List<uint256> txids)
 			{
 				// Parse the header first.
 				var decredBH = new DecredBlockHeader(chainName);
@@ -1409,18 +1460,45 @@ namespace NBitcoin.Altcoins
 
 		public class DecredBase58CheckEncoder : Base58CheckEncoder
 		{
+			private ChainName chainName;
+
+			public DecredBase58CheckEncoder(ChainName chainName) : base()
+			{
+				this.chainName = chainName;
+			}
+
 			protected override byte[] CalculateHash(byte[] bytes, int offset, int length)
 			{
+				if (isBase58Type(bytes, Base58Type.SECRET_KEY))
+				{
+					// `bytes` is a WIF private key. Use single blake256 hash.
+					return Decred.Blake256(bytes, offset, length);
+				}
+
 				return Decred.DoubleBlake256(bytes, offset, length);
+			}
+
+			protected bool isBase58Type(byte[] bytes, Base58Type base58Type)
+			{
+				var prefix = Decred.Instance.GetNetwork(chainName).base58Prefixes[(int)base58Type];
+				if (bytes.Length < prefix.Length)
+					return false;
+				return Utils.ArrayEqual(bytes, 0, prefix, 0, prefix.Length);
 			}
 		}
 
-		private static readonly DecredBase58CheckEncoder _Base58Check = new DecredBase58CheckEncoder();
 		public class DecredAddressStringParser : NetworkStringParser
 		{
+			private readonly DecredBase58CheckEncoder _Base58Check;
+
+			public DecredAddressStringParser(ChainName chainName)
+			{
+				_Base58Check = new DecredBase58CheckEncoder(chainName);
+			}
+
 			public override Base58CheckEncoder GetBase58CheckEncoder()
 			{
-				return (Base58CheckEncoder)_Base58Check;
+				return _Base58Check;
 			}
 		}
 
@@ -1457,7 +1535,7 @@ namespace NBitcoin.Altcoins
 			.SetBase58Bytes(Base58Type.SECRET_KEY, [0x22, 0xde]) // starts with Pm
 			.SetBase58Bytes(Base58Type.EXT_PUBLIC_KEY, [0x02, 0xfd, 0xa9, 0x26]) // starts with dpub
 			.SetBase58Bytes(Base58Type.EXT_SECRET_KEY, [0x02, 0xfd, 0xa4, 0xe8]) // starts with dprv
-			.SetNetworkStringParser(new DecredAddressStringParser())
+			.SetNetworkStringParser(new DecredAddressStringParser(ChainName.Mainnet))
 			.SetHasher160(_hash160)
 			.SetMagic(0xd9b400f9)
 			.SetPort(9108)
@@ -1496,7 +1574,7 @@ namespace NBitcoin.Altcoins
 			.SetBase58Bytes(Base58Type.SECRET_KEY, [0x23, 0x07]) // starts with Ps
 			.SetBase58Bytes(Base58Type.EXT_PUBLIC_KEY, [0x04, 0x20, 0xbd, 0x3d]) // starts with spub
 			.SetBase58Bytes(Base58Type.EXT_SECRET_KEY, [0x04, 0x20, 0xb9, 0x03]) // starts with sprv
-			.SetNetworkStringParser(new DecredAddressStringParser())
+			.SetNetworkStringParser(new DecredAddressStringParser(ChainName.Regtest))
 			.SetHasher160(_hash160)
 			.SetMagic(0x12141c16)
 			.SetPort(19560)
@@ -1535,7 +1613,7 @@ namespace NBitcoin.Altcoins
 			.SetBase58Bytes(Base58Type.SECRET_KEY, [0x23, 0x0e]) // starts with Pt
 			.SetBase58Bytes(Base58Type.EXT_PUBLIC_KEY, [0x04, 0x35, 0x87, 0xd1]) // starts with tpub
 			.SetBase58Bytes(Base58Type.EXT_SECRET_KEY, [0x04, 0x35, 0x83, 0x97]) // starts with tprv
-			.SetNetworkStringParser(new DecredAddressStringParser())
+			.SetNetworkStringParser(new DecredAddressStringParser(ChainName.Testnet))
 			.SetHasher160(_hash160)
 			.SetMagic(0xb194aa75)
 			.SetPort(19108)

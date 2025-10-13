@@ -123,19 +123,40 @@ namespace NBitcoin
 
 		private void SetData(byte[] vchData)
 		{
+			var isDecredPrivateKey = _Network.IsDecred && Type == Base58Type.SECRET_KEY;
+			if (isDecredPrivateKey && vchData.Length == 33 && vchData[32] == 1)
+			{
+				// Decred private key data must be 32 bytes but `vchData` has an
+				// extra byte (for uncompressed key). Remove the extra byte.
+				vchData = vchData.SafeSubarray(0, 32);
+			}
+
 			this.vchData = vchData;
 #if HAS_SPAN
 			if (!(_Network.GetVersionMemory(Type, false) is ReadOnlyMemory<byte> v))
 				throw new FormatException("Invalid " + this.GetType().Name);
 			this.vchVersion = v;
-			Span<byte> buffer = vchVersion.Length + vchData.Length is int length &&
+			int prefixLength = vchVersion.Length;
+			if (isDecredPrivateKey) prefixLength++; // Decred private key prefix includes a 1-byte sig scheme
+			Span<byte> buffer = prefixLength + vchData.Length is int length &&
 								length > 256 ? new byte[length] : stackalloc byte[length];
 			this.vchVersion.Span.CopyTo(buffer);
-			this.vchData.CopyTo(buffer.Slice(this.vchVersion.Length));
+			if (isDecredPrivateKey)
+			{
+				// Fix a 1-byte signature scheme in between the version and
+				// data. Supported signature schemes are STEcdsaSecp256k1 = 0
+				// (default), STEd25519 = 1 and STSchnorrSecp256k1 = 2.
+				buffer[vchVersion.Length] = 0; // STEcdsaSecp256k1
+			}
+			this.vchData.CopyTo(buffer.Slice(prefixLength));
 			wifData = _Network.NetworkStringParser.GetBase58CheckEncoder().EncodeData(buffer);
 #else
 			this.vchVersion = _Network.GetVersionBytes(Type, false);
-			wifData = _Network.NetworkStringParser.GetBase58CheckEncoder().EncodeData(vchVersion.Concat(vchData).ToArray());
+			// For decred private key, fix a 1-byte signature scheme in between
+			// the version and data.
+			byte signatureScheme = 0; // STEcdsaSecp256k1. Other supported schemes: STEd25519 = 1 and STSchnorrSecp256k1 = 2.
+			var vchDataWithPrefix = isDecredPrivateKey ? vchVersion.Append(signatureScheme).Concat(vchData) : vchVersion.Concat(vchData);
+			wifData = _Network.NetworkStringParser.GetBase58CheckEncoder().EncodeData(vchDataWithPrefix.ToArray());
 #endif
 
 			if (!IsValid)

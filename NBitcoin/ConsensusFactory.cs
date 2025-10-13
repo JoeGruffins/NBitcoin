@@ -1,4 +1,5 @@
 ﻿using NBitcoin.Protocol;
+using NBitcoin.RPC;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -125,10 +126,17 @@ namespace NBitcoin
 			};
 		}
 
+		// Altcoins can override to modify some aspects of an rpc request or
+		// return a pre-defined response.
+		public virtual RPCResponse RPCRequestHook(ref RPCRequest request)
+		{
+			return null;
+		}
+
 		// Altcoins can override to provide a unique data parsing. If this
 		// method returns false, the default parsing in RPCClient >
 		// ParseVerboseBlock will be used.
-		public virtual bool ParseGetBlockRPCRespose(JObject json, bool withFullTx, out BlockHeader blockHeader, out Block block, out List<uint256> txids)
+		public virtual bool ParseGetBlockRPCResponse(JObject json, bool withFullTx, out BlockHeader blockHeader, out Block block, out List<uint256> txids)
 		{
 			blockHeader = null;
 			block = null;
