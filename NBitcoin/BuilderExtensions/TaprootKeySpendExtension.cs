@@ -10,6 +10,9 @@ namespace NBitcoin.BuilderExtensions
 {
 	public class TaprootKeySpendExtension : BuilderExtension
 	{
+		public TaprootKeySpendExtension(IHasher hasher) : base(hasher)
+		{
+		}
 
 		public override bool CanDeduceScriptPubKey(Script scriptSig)
 		{

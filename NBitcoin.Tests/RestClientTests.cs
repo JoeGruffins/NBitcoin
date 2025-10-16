@@ -99,7 +99,7 @@ namespace NBitcoin.Tests
 				var client = builder.CreateNode().CreateRESTClient();
 				var rpc = builder.Nodes[0].CreateRPCClient();
 				builder.StartAll();
-				var k = new Key().GetBitcoinSecret(Network.RegTest);
+				var k = new Key(builder.Network.Hasher).GetBitcoinSecret(builder.Network);
 				rpc.Generate(102);
 				rpc.ImportPrivKey(k);
 				rpc.SendToAddress(k.GetAddress(ScriptPubKeyType.Legacy), Money.Coins(50m));

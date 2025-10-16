@@ -7,7 +7,7 @@ namespace NBitcoin.Scripting
 {
 	public static class ScriptExtensions
 	{
-		internal static ScriptToken[] ToTokens(this Script sc)
+		internal static ScriptToken[] ToTokens(this Script sc, IHasher hasher)
 		{
 			var result = new List<ScriptToken>();
 			foreach (Op op in sc.ToOps())
@@ -142,7 +142,7 @@ namespace NBitcoin.Scripting
 						break;
 					default:
 						if ((byte)0x01 <= (byte)op.Code && (byte)op.Code < (byte)0x48)
-							result.Add(GetItem(op));
+							result.Add(GetItem(op, hasher));
 						else if ((byte)0x48 <= (byte)op.Code)
 							throw new ParsingException($"Miniscript does not support pushdata bigger than 33. Got {op}");
 						else
@@ -153,7 +153,7 @@ namespace NBitcoin.Scripting
 			result.Reverse();
 			return result.ToArray();
 		}
-		private static ScriptToken GetItem(Op op)
+		private static ScriptToken GetItem(Op op, IHasher hasher)
 		{
 			if (op.PushData.Length == 20)
 			{
@@ -167,7 +167,7 @@ namespace NBitcoin.Scripting
 			{
 				try
 				{
-					return new ScriptToken.Pk(new PubKey(op.PushData));
+					return new ScriptToken.Pk(new PubKey(op.PushData, hasher));
 				}
 				catch (FormatException ex)
 				{

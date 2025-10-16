@@ -11,7 +11,7 @@ namespace NBitcoin.RPC
 		public bool IsMine { get; private set; }
 		public bool? Solvable { get; private set; }
 
-# nullable enable
+#nullable enable
 		public OutputDescriptor? Descriptor { get; private set; }
 #nullable disable
 
@@ -68,12 +68,12 @@ namespace NBitcoin.RPC
 			target.IsScript = raw.Property("isscript").Value.Value<bool>();
 			target.Address = BitcoinAddress.Create(raw.Property("address").Value.Value<string>(), network);
 			target.ScriptPubKey = new Script(raw.Property("scriptPubKey").Value.Value<string>());
-			target.PubKey = raw.Property("pubkey") == null ? null : new PubKey(raw.Property("pubkey").Value.Value<string>());
+			target.PubKey = raw.Property("pubkey") == null ? null : new PubKey(raw.Property("pubkey").Value.Value<string>(), network.Consensus.ConsensusFactory);
 			var pubkeys = raw.Property("pubkeys");
 			if (pubkeys != null)
 			{
 				foreach (var pk in pubkeys.Value.Values<string>())
-					target.PubKeys.Add(new PubKey(pk));
+					target.PubKeys.Add(new PubKey(pk, network.Consensus.ConsensusFactory));
 			}
 			target.SigsRequired = raw.Property("sigsrequired")?.Value.Value<uint>();
 			target.WitnessVersion = raw.Property("witness_version")?.Value.Value<int>();

@@ -498,13 +498,14 @@ namespace NBitcoin.WalletPolicies
 					ctx.ExpectedKeyType = initialKeyType ?? KeyType.Taproot;
 					ctx.NetstedMusig = wasNested;
 				}
-				node = new MusigNode(wasNested, frame.Parameters.ToArray());
+				node = new MusigNode(wasNested, frame.Parameters.ToArray(), ctx.Network.Hasher);
 				return true;
 			}
-
-			public MusigNode(bool isNested, MiniscriptNode[] parameters) : base(isNested ? FragmentDescriptor.musig33 :  FragmentDescriptor.musig, parameters)
+			public IHasher Hasher { get; }
+			public MusigNode(bool isNested, MiniscriptNode[] parameters, IHasher hasher) : base(isNested ? FragmentDescriptor.musig33 :  FragmentDescriptor.musig, parameters)
 			{
 				IsNested = isNested;
+				Hasher = hasher;
 			}
 			public bool IsNested { get; init; }
 			public PubKey GetAggregatePubKey()
@@ -513,7 +514,7 @@ namespace NBitcoin.WalletPolicies
 					.Select(p => p.GetScript())
 					.Select(s => ECPubKey.Create(s.ToOps().First().PushData))
 					.ToArray();
-				return new PubKey(ECPubKey.MusigAggregate(pks, true), true);
+				return new PubKey(ECPubKey.MusigAggregate(pks, true), true, Hasher);
 			}
 		}
 

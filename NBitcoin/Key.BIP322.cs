@@ -22,7 +22,7 @@ namespace NBitcoin
 					{
 						var messageHash = BIP322Signature.CreateMessageHash(message, true);
 						var sig = SignCompact(messageHash);
-						var recovered = PubKey.RecoverCompact(messageHash, sig);
+						var recovered = PubKey.RecoverCompact(messageHash, sig, address.Network.Hasher);
 						if (recovered != PubKey)
 						{
 							throw new InvalidOperationException("Invalid signature.");

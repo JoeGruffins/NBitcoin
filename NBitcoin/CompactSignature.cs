@@ -33,9 +33,9 @@ namespace NBitcoin
 		/// </summary>
 		public byte[] Signature { get; }
 
-		public PubKey RecoverPubKey(uint256 hash)
+		public PubKey RecoverPubKey(uint256 hash, IHasher hasher)
 		{
-			return PubKey.RecoverCompact(hash, this);
+			return PubKey.RecoverCompact(hash, this, hasher);
 		}
 	}
 }

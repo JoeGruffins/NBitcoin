@@ -12,9 +12,9 @@ namespace NBitcoin.Scripting
 	public abstract class PubKeyProvider : IEquatable<PubKeyProvider>
 	{
 
-		# region subtypes and constructors
+		#region subtypes and constructors
 
-		private PubKeyProvider() {}
+		private PubKeyProvider() { }
 
 		/// <summary>
 		/// Wrapper for other pubkey provider which contains (parent key finger print + relative derivation path to inner Pubkey provider)
@@ -114,22 +114,22 @@ namespace NBitcoin.Scripting
 
 #if HAS_SPAN
 
-		public static PubKeyProvider NewConst(TaprootPubKey pk)
+		public static PubKeyProvider NewConst(TaprootPubKey pk, IHasher hasher)
 		{
 			var pkBytes = new byte[33];
 			pkBytes[0] = 0x02;
 			pk.ToBytes().CopyTo(pkBytes, 1);
-			return new Const(new PubKey(pkBytes), xonly: true);
+			return new Const(new PubKey(pkBytes, hasher), xonly: true);
 		}
 
-		public static PubKeyProvider NewConst(TaprootFullPubKey pk) => NewConst((TaprootPubKey)pk);
+		public static PubKeyProvider NewConst(TaprootFullPubKey pk, IHasher hasher) => NewConst((TaprootPubKey)pk, hasher);
 
-		public static PubKeyProvider NewConst(TaprootInternalPubKey pk)
+		public static PubKeyProvider NewConst(TaprootInternalPubKey pk, IHasher hasher)
 		{
 			var pkBytes = new byte[33];
 			pkBytes[0] = 0x02;
 			pk.ToBytes().CopyTo(pkBytes, 1);
-			return new Const(new PubKey(pkBytes), xonly: true);
+			return new Const(new PubKey(pkBytes, hasher), xonly: true);
 		}
 #endif
 
@@ -193,7 +193,8 @@ namespace NBitcoin.Scripting
 						if (self.Derive == DeriveType.HARDENED)
 							extkey = extkey.Derive(pos | 0x80000000);
 						pubkey = extkey.Neuter().ExtPubKey.PubKey;
-					} else
+					}
+					else
 					{
 						var extkey = new BitcoinExtPubKey(self.Extkey.ToString(), self.Extkey.Network);
 						extkey = extkey.Derive(self.Path);

@@ -27,10 +27,10 @@ namespace NBitcoin
 		/// <param name="sig">Signature in bytes</param>
 		/// <param name="scriptVerify">Verification rules</param>
 		/// <returns>True if valid</returns>
-		public static bool IsValid(byte[] sig, ScriptVerify scriptVerify = ScriptVerify.DerSig | ScriptVerify.StrictEnc)
+		public static bool IsValid(IHasher hasher, byte[] sig, ScriptVerify scriptVerify = ScriptVerify.DerSig | ScriptVerify.StrictEnc)
 		{
 			ScriptError error;
-			return IsValid(sig, scriptVerify, out error);
+			return IsValid(hasher, sig, scriptVerify, out error);
 		}
 
 
@@ -41,7 +41,7 @@ namespace NBitcoin
 		/// <param name="scriptVerify">Verification rules</param>
 		/// <param name="error">Error</param>
 		/// <returns>True if valid</returns>
-		public static bool IsValid(byte[] sig, ScriptVerify scriptVerify, out ScriptError error)
+		public static bool IsValid(IHasher hasher, byte[] sig, ScriptVerify scriptVerify, out ScriptError error)
 		{
 			if (sig == null)
 				throw new ArgumentNullException(nameof(sig));
@@ -51,7 +51,7 @@ namespace NBitcoin
 				return false;
 			}
 			error = ScriptError.OK;
-			var ctx = new ScriptEvaluationContext()
+			var ctx = new ScriptEvaluationContext(hasher)
 			{
 				ScriptVerify = scriptVerify
 			};

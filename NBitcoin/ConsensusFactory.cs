@@ -1,4 +1,5 @@
-﻿using NBitcoin.Protocol;
+﻿using NBitcoin.Crypto;
+using NBitcoin.Protocol;
 using NBitcoin.RPC;
 using Newtonsoft.Json.Linq;
 using System;
@@ -7,7 +8,12 @@ using System.Reflection;
 
 namespace NBitcoin
 {
-	public class ConsensusFactory
+	public interface IHasher
+	{
+		uint160 Hash160(byte[] data, int offset, int count);
+	}
+
+	public class ConsensusFactory : IHasher
 	{
 		static readonly TypeInfo BlockHeaderType = typeof(BlockHeader).GetTypeInfo();
 		static readonly TypeInfo BlockType = typeof(Block).GetTypeInfo();
@@ -200,6 +206,11 @@ namespace NBitcoin
 		internal TransactionBuilder CreateTransactionBuilderCore2(Network network)
 		{
 			return CreateTransactionBuilderCore(network);
+		}
+
+		public virtual uint160 Hash160(byte[] data, int offset, int count)
+		{
+			return Hashes.Hash160(data, offset, count);
 		}
 	}
 }

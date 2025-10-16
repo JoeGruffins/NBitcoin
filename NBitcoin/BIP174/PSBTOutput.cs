@@ -12,7 +12,7 @@ namespace NBitcoin
 {
 	public abstract class PSBTOutput : PSBTCoin
 	{
-		
+
 		public abstract Script ScriptPubKey { get; set; }
 		public abstract Money Value { get; set; }
 		public uint Index { get; set; }
@@ -21,10 +21,10 @@ namespace NBitcoin
 
 		internal PSBTOutput(PSBT parent, uint index) : base(parent)
 		{
-			
+
 			if (parent == null)
 				throw new ArgumentNullException(nameof(parent));
-			
+
 			Index = index;
 		}
 		internal PSBTOutput(Map map, PSBT parent, uint index) : base(parent)
@@ -45,7 +45,7 @@ namespace NBitcoin
 			}
 			foreach (var kv in map.RemoveAll<byte[]>(PSBTConstants.PSBT_OUT_BIP32_DERIVATION))
 			{
-				var pubkey2 = new PubKey(kv.Key.Skip(1).ToArray());
+				var pubkey2 = new PubKey(kv.Key.Skip(1).ToArray(), parent.Network.Hasher);
 				if (hd_keypaths.ContainsKey(pubkey2))
 					throw new FormatException("Invalid PSBTOutput, duplicate key for hd_keypaths");
 				KeyPath path = KeyPath.FromBytes(kv.Value.Skip(4).ToArray());

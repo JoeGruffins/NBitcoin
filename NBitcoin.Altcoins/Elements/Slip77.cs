@@ -8,9 +8,9 @@ namespace NBitcoin.Altcoins.Elements
 	/// </summary>
 	public static class Slip77
 	{
-		public static Key DeriveSlip77BlindingKey(this Slip21Node masterBlindingKey, Script script)
+		public static Key DeriveSlip77BlindingKey(this Slip21Node masterBlindingKey, Script script, Network network)
 		{
-			return new Key(Hashes.HMACSHA256(masterBlindingKey.Key.ToBytes(), script.ToBytes()));
+			return new Key(network.Hasher, Hashes.HMACSHA256(masterBlindingKey.Key(network).ToBytes(), script.ToBytes()));
 		}
 
 		public static Slip21Node GetSlip77Node(this Slip21Node node)

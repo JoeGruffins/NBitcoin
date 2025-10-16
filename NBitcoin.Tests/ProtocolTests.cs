@@ -440,7 +440,7 @@ namespace NBitcoin.Tests
 				var batch = rpc.PrepareBatch();
 				for (int i = 0; i < 20; i++)
 				{
-					var address = (BitcoinPubKeyAddress)new Key().PubKey.GetAddress(ScriptPubKeyType.Legacy, rpc.Network);
+					var address = (BitcoinPubKeyAddress)new Key(rpc.Network.Hasher).PubKey.GetAddress(ScriptPubKeyType.Legacy, rpc.Network);
 					knownAddresses.Add(address.Hash);
 #pragma warning disable CS4014
 					batch.SendToAddressAsync(address, Money.Coins(0.5m));
@@ -700,7 +700,7 @@ namespace NBitcoin.Tests
 				node.Start();
 				var rpc = node.CreateRPCClient();
 				await rpc.Generate(101).WithDelay(delay); // decred needs delay after mining for funds to become spendable
-				rpc.SendToAddress(new Key().PubKey.GetAddress(ScriptPubKeyType.Legacy, builder.Network), Money.Coins(1.0m));
+				rpc.SendToAddress(new Key(builder.Network.Hasher).PubKey.GetAddress(ScriptPubKeyType.Legacy, builder.Network), Money.Coins(1.0m));
 				var client = node.CreateNodeClient();
 				client.VersionHandshake();
 				var transactions = client.GetMempoolTransactions();
@@ -790,7 +790,7 @@ namespace NBitcoin.Tests
 				node.Start();
 				await rpc.Generate(102).WithDelay(delay); // decred needs delay after mining for funds to become spendable
 				for (int i = 0; i < 2; i++)
-					node.CreateRPCClient().SendToAddress(new Key().PubKey.GetAddress(ScriptPubKeyType.Legacy, rpc.Network), Money.Coins(1.0m));
+					node.CreateRPCClient().SendToAddress(new Key(rpc.Network.Hasher).PubKey.GetAddress(ScriptPubKeyType.Legacy, rpc.Network), Money.Coins(1.0m));
 				var client = node.CreateNodeClient();
 				var txIds = client.GetMempool();
 				Assert.True(txIds.Length == 2);

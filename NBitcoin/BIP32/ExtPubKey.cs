@@ -71,14 +71,14 @@ namespace NBitcoin
 		/// <summary>
 		/// Constructor. Creates a new extended public key from the specified extended public key bytes.
 		/// </summary>
-		public ExtPubKey(byte[] bytes) : this(bytes, 0, bytes.Length)
+		public ExtPubKey(byte[] bytes, IHasher hasher) : this(bytes, 0, bytes.Length, hasher)
 		{
 		}
 
 		/// <summary>
 		/// Creates a new extended public key from the specified extended public key bytes.
 		/// </summary>
-		public ExtPubKey(byte[] bytes, int offset, int length)
+		public ExtPubKey(byte[] bytes, int offset, int length, IHasher hasher)
 		{
 			if (bytes == null)
 				throw new ArgumentNullException(nameof(bytes));
@@ -96,13 +96,13 @@ namespace NBitcoin
 			i += 32;
 			var pk = new byte[33];
 			Array.Copy(bytes, i, pk, 0, 33);
-			pubkey = new PubKey(pk);
+			pubkey = new PubKey(pk, hasher);
 		}
 #if HAS_SPAN
 		/// <summary>
 		/// Creates a new extended public key from the specified extended public key bytes.
 		/// </summary>
-		public ExtPubKey(ReadOnlySpan<byte> bytes)
+		public ExtPubKey(ReadOnlySpan<byte> bytes, IHasher hasher)
 		{
 			if (bytes == null)
 				throw new ArgumentNullException(nameof(bytes));
@@ -120,14 +120,14 @@ namespace NBitcoin
 			i += 32;
 			Span<byte> pk = stackalloc byte[33];
 			bytes.Slice(i, 33).CopyTo(pk);
-			pubkey = new PubKey(pk);
+			pubkey = new PubKey(pk, hasher);
 		}
 #endif
 		/// <summary>
 		/// Constructor. Creates a new extended public key from the specified extended public key bytes, from the given hex string.
 		/// </summary>
-		public ExtPubKey(string hex)
-			: this(Encoders.Hex.DecodeData(hex))
+		public ExtPubKey(string hex, IHasher hasher)
+			: this(Encoders.Hex.DecodeData(hex), hasher)
 		{
 		}
 
@@ -269,7 +269,7 @@ namespace NBitcoin
 		{
 			if (other is null)
 				return false;
-			return	   Depth == other.Depth &&
+			return Depth == other.Depth &&
 					   ParentFingerprint == other.ParentFingerprint &&
 					   PubKey == other.PubKey &&
 					   Child == other.Child &&

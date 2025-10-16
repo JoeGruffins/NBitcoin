@@ -208,10 +208,10 @@ namespace NBitcoin.Tests
 					csign2C = key2C.SignCompact(hashMsg);
 
 					PubKey rkey1 = null, rkey2 = null, rkey1C = null, rkey2C = null;
-					rkey1 = PubKey.RecoverCompact(hashMsg, csign1);
-					rkey2 = PubKey.RecoverCompact(hashMsg, csign2);
-					rkey1C = PubKey.RecoverCompact(hashMsg, csign1C);
-					rkey2C = PubKey.RecoverCompact(hashMsg, csign2C);
+					rkey1 = PubKey.RecoverCompact(hashMsg, csign1, Network.Main.Hasher);
+					rkey2 = PubKey.RecoverCompact(hashMsg, csign2, Network.Main.Hasher);
+					rkey1C = PubKey.RecoverCompact(hashMsg, csign1C, Network.Main.Hasher);
+					rkey2C = PubKey.RecoverCompact(hashMsg, csign2C, Network.Main.Hasher);
 
 					Assert.True(rkey1.ToHex() == pubkey1.ToHex());
 					Assert.True(rkey2.ToHex() == pubkey2.ToHex());
@@ -232,7 +232,7 @@ namespace NBitcoin.Tests
 		{
 			//Example private key taken from https://en.bitcoin.it/wiki/Private_key
 			Byte[] privateKey = new Byte[32] { 0xE9, 0x87, 0x3D, 0x79, 0xC6, 0xD8, 0x7D, 0xC0, 0xFB, 0x6A, 0x57, 0x78, 0x63, 0x33, 0x89, 0xF4, 0x45, 0x32, 0x13, 0x30, 0x3D, 0xA6, 0x1F, 0x20, 0xBD, 0x67, 0xFC, 0x23, 0x3A, 0xA3, 0x32, 0x62 };
-			Key key1 = new Key(privateKey, -1, false);
+			Key key1 = new Key(Network.Main.Hasher, privateKey, -1, false);
 
 			ISecret wifKey = key1.GetWif(NBitcoin.Network.Main);
 

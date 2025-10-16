@@ -25,6 +25,13 @@ namespace NBitcoin.BuilderExtensions
 	/// </summary>
 	public abstract class BuilderExtension
 	{
+		public IHasher Hasher { get; }
+
+		public BuilderExtension(IHasher hasher)
+		{
+			this.Hasher = hasher;
+		}
+
 		public static TransactionSignature DummySignature = new TransactionSignature(Encoders.Hex.DecodeData("3045022100b9d685584f46554977343009c04b3091e768c23884fa8d2ce2fb59e5290aa45302203b2d49201c7f695f434a597342eb32dfd81137014fcfb3bb5edc7a19c77774d201"));
 
 		public abstract bool Match(ICoin coin, PSBTInput input);

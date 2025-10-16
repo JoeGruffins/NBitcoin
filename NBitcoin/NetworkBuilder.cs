@@ -25,7 +25,6 @@ namespace NBitcoin
 		internal int _Port;
 		internal uint _Magic;
 		internal Consensus _Consensus;
-		internal Func<byte[], int, int, uint160> _Hash160 = Hashes.Hash160;
 #if !NOSOCKET
 		internal List<DNSSeedData> vSeeds = new List<DNSSeedData>();
 		internal List<NetworkAddress> vFixedSeeds = new List<NetworkAddress>();
@@ -172,12 +171,6 @@ namespace NBitcoin
 		public NetworkBuilder SetChainName(ChainName chainName)
 		{
 			_ChainName = chainName;
-			return this;
-		}
-
-		public NetworkBuilder SetHasher160(Func<byte[], int, int, uint160> hash160)
-		{
-			_Hash160 = hash160;
 			return this;
 		}
 

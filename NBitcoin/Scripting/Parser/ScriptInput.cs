@@ -6,7 +6,7 @@ namespace NBitcoin.Scripting.Parser
 {
 	internal class ScriptInput : IInput<ScriptToken>
 	{
-		public ScriptInput(Script source) : this(source.ToTokens(), 0) { }
+		public ScriptInput(Script source, IHasher hasher) : this(source.ToTokens(hasher), 0) { }
 
 		public ScriptInput(ScriptToken[] source) : this(source, 0) { }
 

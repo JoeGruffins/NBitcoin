@@ -15,7 +15,7 @@ namespace NBitcoin.Tests
 		[Trait("UnitTest", "UnitTest")]
 		public void EmptyFilterMatchFalseTest()
 		{
-			var randomEntries = new [] { RandomUtils.GetBytes(20) };
+			var randomEntries = new[] { RandomUtils.GetBytes(20) };
 			var fakeFilterKey = RandomUtils.GetBytes(16);
 			Assert.False(GolombRiceFilter.Empty.MatchAny(randomEntries, fakeFilterKey));
 		}
@@ -290,7 +290,7 @@ namespace NBitcoin.Tests
 				.SetP(20)
 				.SetM(1U << 20)
 				.SetKey(key)
-				.AddEntries(scripts.Select(x => x.ToCompressedBytes()))
+				.AddEntries(scripts.Select(x => x.ToCompressedBytes(Network.TestNet)))
 				.Build();
 
 			Assert.Equal("017821b8", filter.ToString());
@@ -301,7 +301,7 @@ namespace NBitcoin.Tests
 					var output = tx.Outputs[i];
 					if (!output.ScriptPubKey.IsScriptType(ScriptType.P2SH) && output.ScriptPubKey.IsScriptType(ScriptType.Witness))
 					{
-						Assert.True(filter.Match(output.ScriptPubKey.ToCompressedBytes(), testkey));
+						Assert.True(filter.Match(output.ScriptPubKey.ToCompressedBytes(Network.TestNet), testkey));
 					}
 				}
 			}
@@ -431,7 +431,7 @@ namespace NBitcoin.Tests
 			var scripts = new List<Script>();
 			for (var i = 0; i < 10_000; i++)
 			{
-				var script = new Key().PubKey.GetAddress(ScriptPubKeyType.Segwit, Network.Main).ScriptPubKey;
+				var script = new Key(Network.Main.Hasher).PubKey.GetAddress(ScriptPubKeyType.Segwit, Network.Main).ScriptPubKey;
 				scripts.Add(script);
 			}
 
@@ -466,7 +466,7 @@ namespace NBitcoin.Tests
 				.SetKey(new uint256(blockHash))
 				.SetP(20)
 				.SetM(1 << 20)
-				.AddEntries(new[]{ dummyScriptPubKey })
+				.AddEntries(new[] { dummyScriptPubKey })
 				.Build();
 
 			var scriptPubKey = Encoders.Hex.DecodeData("D432CB07482718ECE932DA6914D1FDC1A8EACE3F127D");

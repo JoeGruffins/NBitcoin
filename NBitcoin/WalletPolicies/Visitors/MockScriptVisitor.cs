@@ -43,7 +43,7 @@ internal class MockScriptVisitor(Network Network, KeyType KeyType) : MiniscriptR
 		if (p.Requirement is MiniscriptNode.ParameterRequirement.Key or MiniscriptNode.ParameterRequirement.HDKey)
 		{
 			paramName ??= p.Name;
-			var pk = new Key().PubKey;
+			var pk = new Key(Network.Hasher).PubKey;
 			if (KeyType is KeyType.Taproot)
 			{
 				var pkk = pk.TaprootPubKey;
@@ -71,7 +71,7 @@ internal class MockScriptVisitor(Network Network, KeyType KeyType) : MiniscriptR
 		}
 		else if (p.Requirement is MiniscriptNode.ParameterRequirement.Fragment)
 		{
-			var pkStr = new Key().PubKey.ToString();
+			var pkStr = new Key(Network.Hasher).PubKey.ToString();
 			var pk = $"pk_k({pkStr})";
 			replacements.Add((pkStr, $"<{p.Name}>"));
 			modifiedParameter = Miniscript.Parse(pk, new MiniscriptParsingSettings(Network, KeyType)).RootNode;

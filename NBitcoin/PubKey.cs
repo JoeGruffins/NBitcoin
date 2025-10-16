@@ -49,32 +49,33 @@ namespace NBitcoin
 		/// <summary>
 		/// Create a new Public key from string
 		/// </summary>
-		public PubKey(string hex)
-			: this(Encoders.Hex.DecodeData(hex))
+		public PubKey(string hex, IHasher hasher)
+			: this(Encoders.Hex.DecodeData(hex), hasher)
 		{
 
 		}
 
 #if HAS_SPAN
 		bool compressed;
-		internal PubKey(Secp256k1.ECPubKey pubkey, bool compressed)
+		internal PubKey(Secp256k1.ECPubKey pubkey, bool compressed, IHasher hasher)
 		{
 			if (pubkey == null)
 				throw new ArgumentNullException(nameof(pubkey));
 			this._ECKey = pubkey;
 			this.compressed = compressed;
+			this.Hasher = hasher;
 		}
-		public static bool TryCreatePubKey(byte[] bytes, [MaybeNullWhen(false)] out PubKey pubKey)
+		public static bool TryCreatePubKey(byte[] bytes, IHasher hasher, [MaybeNullWhen(false)] out PubKey pubKey)
 		{
 			if(bytes is null)
 				throw new ArgumentNullException(nameof(bytes));
-			return TryCreatePubKey(bytes.AsSpan(), out pubKey);
+			return TryCreatePubKey(bytes.AsSpan(), hasher, out pubKey);
 		}
-		public static bool TryCreatePubKey(ReadOnlySpan<byte> bytes, [MaybeNullWhen(false)] out PubKey pubKey)
+		public static bool TryCreatePubKey(ReadOnlySpan<byte> bytes, IHasher hasher, [MaybeNullWhen(false)] out PubKey pubKey)
 		{
 			if (NBitcoinContext.Instance.TryCreatePubKey(bytes, out var compressed, out var p))
 			{
-				pubKey = new PubKey(p, compressed);
+				pubKey = new PubKey(p, compressed, hasher);
 				return true;
 			}
 			pubKey = null;
@@ -83,7 +84,7 @@ namespace NBitcoin
 
 #endif
 #if !HAS_SPAN
-		public static bool TryCreatePubKey(byte[] bytes, [MaybeNullWhen(false)] out PubKey pubKey)
+		public static bool TryCreatePubKey(byte[] bytes, IHasher hasher, [MaybeNullWhen(false)] out PubKey pubKey)
 		{
 			if (bytes is null)
 				throw new ArgumentNullException(nameof(bytes));
@@ -91,7 +92,7 @@ namespace NBitcoin
 			try
 			{
 				var eck = new ECKey(bytes, false);
-				pubKey = new PubKey(eck, bytes);
+				pubKey = new PubKey(eck, bytes, hasher);
 				return true;
 			}
 			catch
@@ -101,10 +102,11 @@ namespace NBitcoin
 			}
 		}
 
-		PubKey(ECKey eCKey, byte[] bytes)
+		PubKey(ECKey eCKey, byte[] bytes, IHasher hasher)
 		{
 			_ECKey = eCKey;
 			vch = bytes.ToArray();
+			this.Hasher = hasher;
 		}
 #endif
 
@@ -112,8 +114,9 @@ namespace NBitcoin
 		/// Create a new Public key from byte array
 		/// </summary>
 		/// <param name="bytes">byte array</param>
-		public PubKey(byte[] bytes)
+		public PubKey(byte[] bytes, IHasher hasher)
 		{
+			this.Hasher = hasher;
 			if (bytes is null)
 				throw new ArgumentNullException(nameof(bytes));
 #if HAS_SPAN
@@ -143,11 +146,12 @@ namespace NBitcoin
 		/// Create a new Public key from byte array
 		/// </summary>
 		/// <param name="bytes">byte array</param>
-		public PubKey(ReadOnlySpan<byte> bytes)
+		public PubKey(ReadOnlySpan<byte> bytes, IHasher hasher)
 		{
 			if (NBitcoinContext.Instance.TryCreatePubKey(bytes, out compressed, out var p) && p is Secp256k1.ECPubKey)
 			{
 				_ECKey = p;
+				this.Hasher = hasher;
 			}
 			else
 			{
@@ -177,9 +181,9 @@ namespace NBitcoin
 			if (IsCompressed)
 				return this;
 #if HAS_SPAN
-			return new PubKey(this._ECKey, true);
+			return new PubKey(this._ECKey, true, this.Hasher);
 #else
-			return ECKey.GetPubKey(true);
+			return ECKey.GetPubKey(true, this.Hasher);
 #endif
 		}
 		public PubKey Decompress()
@@ -187,9 +191,9 @@ namespace NBitcoin
 			if (!IsCompressed)
 				return this;
 #if HAS_SPAN
-			return new PubKey(this._ECKey, false);
+			return new PubKey(this._ECKey, false, this.Hasher);
 #else
-			return ECKey.GetPubKey(false);
+			return ECKey.GetPubKey(false, this.Hasher);
 #endif
 		}
 
@@ -213,11 +217,7 @@ namespace NBitcoin
 					);
 		}
 
-		public Func<byte[], int, int, uint160> Hash160
-		{
-			get;
-			set;
-		} = Hashes.Hash160;
+		public IHasher Hasher { get; }
 
 #if HAS_SPAN
 		KeyId? _ID;
@@ -231,7 +231,7 @@ namespace NBitcoin
 					_ECKey.WriteToSpan(compressed, tmp, out int len);
 					tmp = tmp.Slice(0, len);
 					var data = tmp.ToArray();
-					_ID = new KeyId(this.Hash160(data, 0, data.Length));
+					_ID = new KeyId(this.Hasher.Hash160(data, 0, data.Length));
 				}
 				return _ID;
 			}
@@ -246,7 +246,8 @@ namespace NBitcoin
 					Span<byte> tmp = stackalloc byte[65];
 					_ECKey.WriteToSpan(compressed, tmp, out int len);
 					tmp = tmp.Slice(0, len);
-					_WitID = new WitKeyId(Hashes.Hash160(tmp));
+					var data = tmp.ToArray();
+					_WitID = new WitKeyId(this.Hasher.Hash160(data, 0, data.Length));
 				}
 				return _WitID;
 			}
@@ -260,7 +261,7 @@ namespace NBitcoin
 			{
 				if (_ID == null)
 				{
-					_ID = new KeyId(this.Hash160(vch, 0, vch.Length));
+					_ID = new KeyId(this.Hasher.Hash160(vch, 0, vch.Length));
 				}
 				return _ID;
 			}
@@ -272,7 +273,7 @@ namespace NBitcoin
 			{
 				if (_WitID == null)
 				{
-					_WitID = new WitKeyId(Hashes.Hash160(vch, 0, vch.Length));
+					_WitID = new WitKeyId(this.Hasher.Hash160(vch, 0, vch.Length));
 				}
 				return _WitID;
 			}
@@ -299,7 +300,6 @@ namespace NBitcoin
 			switch (type)
 			{
 				case ScriptPubKeyType.Legacy:
-					this.Hash160 = network.Hash160;
 					return this.Hash.GetAddress(network);
 				case ScriptPubKeyType.Segwit:
 					if (!network.Consensus.SupportSegwit)
@@ -308,7 +308,7 @@ namespace NBitcoin
 				case ScriptPubKeyType.SegwitP2SH:
 					if (!network.Consensus.SupportSegwit)
 						throw new NotSupportedException("This network does not support segwit");
-					return this.WitHash.ScriptPubKey.Hash.GetAddress(network);
+					return this.WitHash.ScriptPubKey.Hash(network.Hasher).GetAddress(network);
 #pragma warning disable CS0618 // Type or member is obsolete
 				case ScriptPubKeyType.TaprootBIP86:
 #pragma warning restore CS0618 // Type or member is obsolete
@@ -338,14 +338,14 @@ namespace NBitcoin
 
 #if HAS_SPAN
 		private PubKey? _twin;
-		internal PubKey GetYCoordinateEvenPubKey()
+		internal PubKey GetYCoordinateEvenPubKey(IHasher hasher)
 		{
 			if (!Parity)
 				return this;
 			var pkBytes = new byte[33];
 			pkBytes[0] = 0x02;
 			ToBytes().AsSpan().Slice(1, 32).CopyTo(pkBytes.AsSpan().Slice(1));
-			_twin = new PubKey(pkBytes);
+			_twin = new PubKey(pkBytes, hasher);
 			return _twin;
 		}
 #endif
@@ -425,7 +425,7 @@ namespace NBitcoin
 				case ScriptPubKeyType.Segwit:
 					return WitHash;
 				case ScriptPubKeyType.SegwitP2SH:
-					return WitHash.ScriptPubKey.Hash;
+					return WitHash.ScriptPubKey.Hash(Hasher);
 #pragma warning disable CS0618 // Type or member is obsolete
 				case ScriptPubKeyType.TaprootBIP86:
 #pragma warning restore CS0618 // Type or member is obsolete
@@ -484,7 +484,7 @@ namespace NBitcoin
 			return ToHex();
 		}
 
-		public static PubKey RecoverCompact(uint256 hash, CompactSignature compactSignature)
+		public static PubKey RecoverCompact(uint256 hash, CompactSignature compactSignature, IHasher hasher)
 		{
 			if (compactSignature is null)
 				throw new ArgumentNullException(nameof(compactSignature));
@@ -496,7 +496,7 @@ namespace NBitcoin
 			if (Secp256k1.SecpRecoverableECDSASignature.TryCreateFromCompact(compactSignature.Signature, compactSignature.RecoveryId, out var sig) &&
 				Secp256k1.ECPubKey.TryRecover(NBitcoinContext.Instance, sig, msg, out var pubkey))
 			{
-				return new PubKey(pubkey, true);
+				return new PubKey(pubkey, true, hasher);
 			}
 			throw new InvalidOperationException("Impossible to recover the public key");
 #else
@@ -506,7 +506,7 @@ namespace NBitcoin
 			var sig = new ECDSASignature(r, s);
 #pragma warning restore 618
 			ECKey key = ECKey.RecoverFromSignature(compactSignature.RecoveryId, sig, hash);
-			return key.GetPubKey(true);
+			return key.GetPubKey(true, hasher);
 #endif
 		}
 
@@ -524,7 +524,7 @@ namespace NBitcoin
 			Hashes.BIP32Hash(cc, nChild, pubkey[0], pubkey.Slice(1), vout);
 			ccChild = new byte[32]; ;
 			vout.Slice(32, 32).CopyTo(ccChild);
-			return new PubKey(this.ECKey.AddTweak(vout.Slice(0, 32)), true);
+			return new PubKey(this.ECKey.AddTweak(vout.Slice(0, 32)), true, this.Hasher);
 #else
 			byte[] l = new byte[32];
 			byte[] r = new byte[32];
@@ -546,7 +546,7 @@ namespace NBitcoin
 
 			q = q.Normalize();
 			var p = new NBitcoin.BouncyCastle.Math.EC.FpPoint(ECKey.CURVE.Curve, q.XCoord, q.YCoord, true);
-			return new PubKey(p.GetEncoded());
+			return new PubKey(p.GetEncoded(), this.Hasher);
 #endif
 		}
 
@@ -613,7 +613,6 @@ namespace NBitcoin
 				if (_ScriptPubKey is null)
 				{
 					_ScriptPubKey = PayToPubkeyTemplate.Instance.GenerateScriptPubKey(this);
-					_ScriptPubKey.Hash160 = Hash160;
 				}
 				return _ScriptPubKey;
 			}
@@ -629,7 +628,7 @@ namespace NBitcoin
 #if HAS_SPAN
 			if (key == null)
 				throw new ArgumentNullException(nameof(key));
-			return new PubKey(ECKey.GetSharedPubkey(key._ECKey), true);
+			return new PubKey(ECKey.GetSharedPubkey(key._ECKey), true, this.Hasher);
 #else
 			var pub = _ECKey.GetPublicKeyParameters();
 			var privKey = key._ECKey.PrivateKey;
@@ -640,7 +639,7 @@ namespace NBitcoin
 				throw new InvalidOperationException("Infinity is not a valid agreement value for ECDH");
 			var pubkey = ECKey.Secp256k1.Curve.CreatePoint(q.XCoord.ToBigInteger(), q.YCoord.ToBigInteger());
 			pubkey = pubkey.Normalize();
-			return new ECKey(pubkey.GetEncoded(true), false).GetPubKey(true);
+			return new ECKey(pubkey.GetEncoded(true), false).GetPubKey(true, this.Hasher);
 #endif
 		}
 
@@ -657,7 +656,7 @@ namespace NBitcoin
 		{
 			if (message is null)
 				throw new ArgumentNullException(nameof(message));
-			var ephemeral = new Key();
+			var ephemeral = new Key(this.Hasher);
 			var sharedKey = Hashes.SHA512(GetSharedPubkey(ephemeral).ToBytes());
 			var iv = sharedKey.SafeSubarray(0, 16);
 			var encryptionKey = sharedKey.SafeSubarray(16, 16);

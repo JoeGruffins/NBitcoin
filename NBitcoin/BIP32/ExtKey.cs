@@ -169,16 +169,16 @@ namespace NBitcoin
 		/// <summary>
 		/// Constructor. Creates a new extended key with a random 64 byte seed.
 		/// </summary>
-		public ExtKey()
+		public ExtKey(IHasher hasher)
 		{
 #if HAS_SPAN
 			Span<byte> seed = stackalloc byte[64];
 			RandomUtils.GetBytes(seed);
-			key = CalculateKey(seed, out var cc);
+			key = CalculateKey(hasher, seed, out var cc);
 			this.vchChainCode = cc;
 #else
 			byte[] seed = RandomUtils.GetBytes(64);
-			key = CalculateKey(seed, out var cc);
+			key = CalculateKey(hasher, seed, out var cc);
 			this.vchChainCode = cc;
 #endif
 		}
@@ -195,33 +195,33 @@ namespace NBitcoin
 		/// <summary>
 		/// Constructor. Creates a new extended key from the specified seed bytes, from the given hex string.
 		/// </summary>
-		public ExtKey(string seedHex)
+		public ExtKey(IHasher hasher, string seedHex)
 		{
-			key = CalculateKey(Encoders.Hex.DecodeData(seedHex), out var cc);
+			key = CalculateKey(hasher, Encoders.Hex.DecodeData(seedHex), out var cc);
 			this.vchChainCode = cc;
 		}
 
 
-		public static ExtKey CreateFromSeed(byte[] seed)
+		public static ExtKey CreateFromSeed(IHasher hasher, byte[] seed)
 		{
 			if (seed == null)
 				throw new ArgumentNullException(nameof(seed));
-			return new ExtKey(seed, true);
+			return new ExtKey(hasher, seed, true);
 		}
-		public static ExtKey CreateFromBytes(byte[] bytes)
+		public static ExtKey CreateFromBytes(IHasher hasher, byte[] bytes)
 		{
 			if (bytes == null)
 				throw new ArgumentNullException(nameof(bytes));
-			return new ExtKey(bytes, false);
+			return new ExtKey(hasher, bytes, false);
 		}
 		/// <summary>
 		/// Constructor. Creates a new extended key from the specified seed bytes.
 		/// </summary>
-		private ExtKey(byte[] bytes, bool isSeed)
+		private ExtKey(IHasher hasher, byte[] bytes, bool isSeed)
 		{
 			if (isSeed)
 			{
-				key = CalculateKey(bytes, out var cc);
+				key = CalculateKey(hasher, bytes, out var cc);
 				this.vchChainCode = cc;
 			}
 			else
@@ -244,26 +244,26 @@ namespace NBitcoin
 					throw new FormatException($"Invalid ExtKey");
 				var sk = new byte[32];
 				Array.Copy(bytes, i, sk, 0, 32);
-				key = new Key(sk);
+				key = new Key(hasher, sk);
 			}
 		}
 
 #if HAS_SPAN
 
-		public static ExtKey CreateFromSeed(ReadOnlySpan<byte> seed)
+		public static ExtKey CreateFromSeed(IHasher hasher, ReadOnlySpan<byte> seed)
 		{
-			return new ExtKey(seed, true);
+			return new ExtKey(hasher, seed, true);
 		}
-		public static ExtKey CreateFromBytes(ReadOnlySpan<byte> bytes)
+		public static ExtKey CreateFromBytes(IHasher hasher, ReadOnlySpan<byte> bytes)
 		{
-			return new ExtKey(bytes, false);
+			return new ExtKey(hasher, bytes, false);
 		}
 
-		private ExtKey(ReadOnlySpan<byte> bytes, bool isSeed)
+		private ExtKey(IHasher hasher, ReadOnlySpan<byte> bytes, bool isSeed)
 		{
 			if (isSeed)
 			{
-				key = CalculateKey(bytes, out var cc);
+				key = CalculateKey(hasher, bytes, out var cc);
 				this.vchChainCode = cc;
 			}
 			else
@@ -284,17 +284,17 @@ namespace NBitcoin
 					throw new FormatException($"Invalid ExtKey");
 				Span<byte> sk = stackalloc byte[32];
 				bytes.Slice(i, 32).CopyTo(sk);
-				key = new Key(sk);
+				key = new Key(hasher, sk);
 			}
 		}
-		private static Key CalculateKey(ReadOnlySpan<byte> seed, out byte[] chainCode)
+		private static Key CalculateKey(IHasher hasher, ReadOnlySpan<byte> seed, out byte[] chainCode)
 		{
 			Span<byte> hashMAC = stackalloc byte[64];
 			if (Hashes.HMACSHA512(hashkey, seed, hashMAC, out int len) &&
 				len == 64 &&
 				NBitcoinContext.Instance.TryCreateECPrivKey(hashMAC.Slice(0, 32), out var k) && k is Secp256k1.ECPrivKey)
 			{
-				var key = new Key(k, true);
+				var key = new Key(hasher, k, true);
 				chainCode = new byte[32];
 				hashMAC.Slice(32, ChainCodeLength).CopyTo(chainCode);
 				hashMAC.Clear();
@@ -306,10 +306,10 @@ namespace NBitcoin
 			}
 		}
 #else
-		private static Key CalculateKey(byte[] seed, out byte[] chainCode)
+		private static Key CalculateKey(IHasher hasher, byte[] seed, out byte[] chainCode)
 		{
 			var hashMAC = Hashes.HMACSHA512(hashkey, seed);
-			var key = new Key(hashMAC.SafeSubarray(0, 32));
+			var key = new Key(hasher, hashMAC.SafeSubarray(0, 32));
 			chainCode = new byte[32];
 			Buffer.BlockCopy(hashMAC, 32, chainCode, 0, ChainCodeLength);
 			return key;
@@ -421,7 +421,7 @@ namespace NBitcoin
 			return new BitcoinExtKey(this, network).ToString();
 		}
 
-#region IDestination Members
+		#region IDestination Members
 
 		/// <summary>
 		/// Gets the script of the hash of the public key corresponding to the private key.
@@ -434,7 +434,7 @@ namespace NBitcoin
 			}
 		}
 
-#endregion
+		#endregion
 
 		/// <summary>
 		/// Gets whether or not this extended key is a hardened child.
@@ -474,7 +474,7 @@ namespace NBitcoin
 			if (!l.Slice(32, 32).SequenceEqual(vchChainCode))
 				throw new InvalidOperationException("The derived chain code of the parent is not equal to this child chain code");
 			var kPar = this.PrivateKey._ECKey.sec + parse256LL.Negate();
-			return new ExtKey(new Key(new Secp256k1.ECPrivKey(kPar, this.PrivateKey._ECKey.ctx, true), true),
+			return new ExtKey(new Key(this.PrivateKey.Hasher, new Secp256k1.ECPrivKey(kPar, this.PrivateKey._ECKey.ctx, true), true),
 				parent.vchChainCode,
 				parent.Depth,
 				parent.ParentFingerprint,
@@ -503,7 +503,7 @@ namespace NBitcoin
 			if (keyParentBytes.Length < 32)
 				keyParentBytes = new byte[32 - keyParentBytes.Length].Concat(keyParentBytes).ToArray();
 
-			var parentExtKey = new ExtKey(new Key(keyParentBytes),
+			var parentExtKey = new ExtKey(new Key(this.PrivateKey.Hasher, keyParentBytes),
 				parent.vchChainCode,
 				parent.Depth,
 				parent.ParentFingerprint,

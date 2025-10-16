@@ -39,7 +39,7 @@ namespace NBitcoin.Tests.Generators
 
 		public static Gen<BitcoinAddress> P2SHAddress(Network network) =>
 			from pk in PublicKey()
-			select (BitcoinAddress)pk.GetScriptPubKey(ScriptPubKeyType.Legacy).Hash.GetAddress(network);
+			select (BitcoinAddress)pk.GetScriptPubKey(ScriptPubKeyType.Legacy).Hash(network.Hasher).GetAddress(network);
 
 		public static Gen<BitcoinAddress> Bech32Address() =>
 			from n in ChainParamsGenerator.NetworkGen()

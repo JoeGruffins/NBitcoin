@@ -145,7 +145,7 @@ namespace NBitcoin
 		}
 
 		public PSBTInputList Inputs { get; protected set; } = new();
-		public PSBTOutputList Outputs { get; protected set;} = new();
+		public PSBTOutputList Outputs { get; protected set; } = new();
 
 		public Map Unknown { get; protected set; } = new Map();
 
@@ -246,12 +246,12 @@ namespace NBitcoin
 				xpubBytes ??= Network.GetVersionBytes(Base58Type.EXT_PUBLIC_KEY, false);
 				if (xpubBytes is null)
 					throw new FormatException("Invalid PSBT. No xpub version bytes");
-				var (xpub, rootedKeyPath) = ParseXpub(xpubBytes, kv.Key, kv.Value);
+				var (xpub, rootedKeyPath) = ParseXpub(xpubBytes, kv.Key, kv.Value, Network);
 				GlobalXPubs.Add(xpub.GetWif(Network), rootedKeyPath);
 			}
 		}
 
-		internal static (ExtPubKey, RootedKeyPath) ParseXpub(byte[] xpubBytes, byte[] k, byte[] v)
+		internal static (ExtPubKey, RootedKeyPath) ParseXpub(byte[] xpubBytes, byte[] k, byte[] v, Network network)
 		{
 			if (xpubBytes is null)
 				throw new FormatException("Invalid PSBT. No xpub version bytes");
@@ -262,7 +262,7 @@ namespace NBitcoin
 			{
 				throw new FormatException("Malformed global xpub.");
 			}
-			var xpub = new ExtPubKey(k, 1 + xpubBytes.Length, 74);
+			var xpub = new ExtPubKey(k, 1 + xpubBytes.Length, 74, network.Hasher);
 
 			KeyPath path = KeyPath.FromBytes(v.Skip(4).ToArray());
 			var rootedKeyPath = new RootedKeyPath(new HDFingerprint(v.Take(4).ToArray()), path);
@@ -1020,9 +1020,9 @@ namespace NBitcoin
 			var unused = new OutPoint(uint256.Zero, 0);
 			foreach (var redeem in redeems)
 			{
-				var p2sh = redeem.Hash.ScriptPubKey;
+				var p2sh = redeem.Hash(Network.Hasher).ScriptPubKey;
 				var p2wsh = redeem.WitHash.ScriptPubKey;
-				var p2shp2wsh = redeem.WitHash.ScriptPubKey.Hash.ScriptPubKey;
+				var p2shp2wsh = redeem.WitHash.ScriptPubKey.Hash(Network.Hasher).ScriptPubKey;
 				foreach (var o in this.Inputs.OfType<PSBTCoin>().Concat(this.Outputs))
 				{
 					if (o is PSBTInput ii && ii.IsFinalized())
@@ -1204,7 +1204,7 @@ namespace NBitcoin
 				var txout = o.GetTxOut();
 				if (txout == null)
 					continue;
-				
+
 				if ((scriptPubKey is not null && txout.ScriptPubKey == scriptPubKey) ||
 					(GetScriptCode(o, pubkey) is Script s && txBuilder.IsCompatibleKeyFromScriptCode(pubkey, s)) ||
 					  txBuilder.IsCompatibleKeyFromScriptCode(pubkey, txout.ScriptPubKey))
@@ -1230,7 +1230,7 @@ namespace NBitcoin
 			};
 			return (input?.GetSignableCoin() ?? input?.GetCoin()?.TryToScriptCoin(pubKey))?.GetScriptCode();
 		}
-		
+
 		/// <summary>
 		/// Rebase the keypaths.
 		/// If a PSBT updater only know the child HD public key but not the root one, another updater knowing the parent master key it is based on

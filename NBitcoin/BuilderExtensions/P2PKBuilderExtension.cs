@@ -8,6 +8,9 @@ namespace NBitcoin.BuilderExtensions
 {
 	public class P2PKBuilderExtension : BuilderExtension
 	{
+		public P2PKBuilderExtension(IHasher hasher) : base(hasher)
+		{
+		}
 
 		public override bool CanDeduceScriptPubKey(Script scriptSig)
 		{
@@ -16,7 +19,7 @@ namespace NBitcoin.BuilderExtensions
 
 		public override bool CanEstimateScriptSigSize(ICoin coin)
 		{
-			return CanSign(coin.GetScriptCode());
+			return CanSign(coin.GetScriptCode(), Hasher);
 		}
 
 		public override void Sign(InputSigningContext inputSigningContext, IKeyRepository keyRepository, ISigner signer)
@@ -31,9 +34,9 @@ namespace NBitcoin.BuilderExtensions
 			inputSigningContext.Input.PartialSigs.TryAdd(key, sig);
 		}
 
-		private static bool CanSign(Script scriptPubKey)
+		private static bool CanSign(Script scriptPubKey, IHasher hasher)
 		{
-			return PayToPubkeyTemplate.Instance.ExtractScriptPubKeyParameters(scriptPubKey) != null;
+			return PayToPubkeyTemplate.Instance.ExtractScriptPubKeyParameters(scriptPubKey, hasher) != null;
 		}
 
 		public override Script DeduceScriptPubKey(Script scriptSig)
@@ -55,20 +58,20 @@ namespace NBitcoin.BuilderExtensions
 		{
 			var txIn = inputSigningContext.Input;
 			var scriptPubKey = inputSigningContext.Coin.GetScriptCode();
-			var pk = PayToPubkeyTemplate.Instance.ExtractScriptPubKeyParameters(scriptPubKey);
+			var pk = PayToPubkeyTemplate.Instance.ExtractScriptPubKeyParameters(scriptPubKey, Hasher);
 			if (!txIn.PartialSigs.TryGetValue(pk, out var sig))
 				return;
 			txIn.FinalScriptSig = PayToPubkeyTemplate.Instance.GenerateScriptSig(sig);
 		}
 		public override bool Match(ICoin coin, PSBTInput input)
 		{
-			return CanSign(coin.GetScriptCode());
+			return CanSign(coin.GetScriptCode(), Hasher);
 		}
 
 		public override void ExtractExistingSignatures(InputSigningContext inputSigningContext)
 		{
 			var scriptPubKey = inputSigningContext.Coin.GetScriptCode();
-			var pk = PayToPubkeyTemplate.Instance.ExtractScriptPubKeyParameters(scriptPubKey);
+			var pk = PayToPubkeyTemplate.Instance.ExtractScriptPubKeyParameters(scriptPubKey, Hasher);
 			var scriptSigData = inputSigningContext.OriginalTxIn.ScriptSig.ToOps().Select(o => o.PushData);
 			var witScriptData = inputSigningContext.OriginalTxIn.WitScript.Pushes;
 			foreach (var data in scriptSigData.Concat(witScriptData))

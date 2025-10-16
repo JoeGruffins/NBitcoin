@@ -5,6 +5,7 @@
 	/// </summary>
 	public interface IDestination
 	{
+		// TODO: Add Network property??
 		Script ScriptPubKey
 		{
 			get;

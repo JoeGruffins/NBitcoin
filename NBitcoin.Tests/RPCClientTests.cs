@@ -170,7 +170,7 @@ namespace NBitcoin.Tests
 				var rpc = node.CreateRPCClient();
 				builder.StartAll();
 				node.Generate(101);
-				var txid = rpc.SendToAddress(new Key().PubKey.GetAddress(ScriptPubKeyType.Legacy, rpc.Network), Money.Coins(1.0m));
+				var txid = rpc.SendToAddress(new Key(builder.Network.Hasher).PubKey.GetAddress(ScriptPubKeyType.Legacy, rpc.Network), Money.Coins(1.0m));
 				var ids = rpc.GetRawMempool();
 				Assert.Single(ids);
 				Assert.Equal(txid, ids[0]);
@@ -206,7 +206,7 @@ namespace NBitcoin.Tests
 
 				// decred wallet does not support additional send parameters
 				var sendParams = rpc.Network.IsDecred ? null : new SendToAddressParameters() { Comment = "hello", CommentTo = "world" };
-				var txid = rpc.SendToAddress(new Key().PubKey.GetAddress(ScriptPubKeyType.Legacy, rpc.Network), Money.Coins(1.0m), sendParams);
+				var txid = rpc.SendToAddress(new Key(builder.Network.Hasher).PubKey.GetAddress(ScriptPubKeyType.Legacy, rpc.Network), Money.Coins(1.0m), sendParams);
 				var memPoolInfo = rpc.GetMemPool();
 				Assert.NotNull(memPoolInfo);
 				Assert.Equal(1, memPoolInfo.Size);
@@ -237,7 +237,7 @@ namespace NBitcoin.Tests
 						SubstractFeeFromAmount = true,
 						FeeRate = param.FeeRate
 					};
-					rpc.SendToAddress(new Key().PubKey.GetAddress(ScriptPubKeyType.Legacy, rpc.Network), Money.Coins(1.0m),
+					rpc.SendToAddress(new Key(builder.Network.Hasher).PubKey.GetAddress(ScriptPubKeyType.Legacy, rpc.Network), Money.Coins(1.0m),
 						sendParams);
 				}
 			}
@@ -257,7 +257,7 @@ namespace NBitcoin.Tests
 				var mempoolFilePath = Path.Combine(node.Folder, "data", "regtest", "mempool.dat");
 				File.Delete(mempoolFilePath);
 				Assert.False(File.Exists(mempoolFilePath));
-				rpc.SendToAddress(new Key().PubKey.GetAddress(ScriptPubKeyType.Legacy, rpc.Network), Money.Coins(1.0m), new SendToAddressParameters() { Comment = "hello", CommentTo = "world" });
+				rpc.SendToAddress(new Key(builder.Network.Hasher).PubKey.GetAddress(ScriptPubKeyType.Legacy, rpc.Network), Money.Coins(1.0m), new SendToAddressParameters() { Comment = "hello", CommentTo = "world" });
 				rpc.SaveMempool();
 				Assert.True(File.Exists(mempoolFilePath));
 			}
@@ -280,7 +280,7 @@ namespace NBitcoin.Tests
 				rpc.AllowBatchFallback = true;
 				rpc = rpc.PrepareBatch();
 				// Should be denied
-				var sending = rpc.SendToAddressAsync(new Key().PubKey.GetAddress(ScriptPubKeyType.Legacy, rpc.Network), Money.Coins(1.0m), new SendToAddressParameters() { Comment = "hello", CommentTo = "world" });
+				var sending = rpc.SendToAddressAsync(new Key(builder.Network.Hasher).PubKey.GetAddress(ScriptPubKeyType.Legacy, rpc.Network), Money.Coins(1.0m), new SendToAddressParameters() { Comment = "hello", CommentTo = "world" });
 				// Should give network info
 				var gettingNetworkInfo = rpc.SendCommandAsync(RPCOperations.getnetworkinfo);
 				await rpc.SendBatchAsync();
@@ -319,7 +319,7 @@ namespace NBitcoin.Tests
 				var rpc = node.CreateRPCClient();
 				builder.StartAll();
 				node.Generate(101);
-				var key = new Key();
+				var key = new Key(builder.Network.Hasher);
 				var dest = key.PubKey.Hash.GetAddress(builder.Network);
 				var txid = rpc.SendToAddress(dest, Money.Coins(1.0m));
 				var funding = rpc.GetRawTransaction(txid);
@@ -328,7 +328,7 @@ namespace NBitcoin.Tests
 
 				var spent = Transaction.Create(builder.Network);
 				spent.Inputs.Add(new TxIn(coin.Outpoint));
-				spent.Outputs.Add(new TxOut(Money.Coins(1.0m), new Key().PubKey.Hash.ScriptPubKey));
+				spent.Outputs.Add(new TxOut(Money.Coins(1.0m), new Key(builder.Network.Hasher).PubKey.Hash.ScriptPubKey));
 
 				var response = rpc.SignRawTransactionWithKey(new SignRawTransactionWithKeyRequest()
 				{
@@ -361,7 +361,7 @@ namespace NBitcoin.Tests
 				node.Generate(101);
 
 
-				var key = new Key();
+				var key = new Key(builder.Network.Hasher);
 				var dest = key.PubKey.Hash.GetAddress(builder.Network);
 				var txid = rpc.SendToAddress(dest, Money.Coins(1.0m));
 				var funding = rpc.GetRawTransaction(txid);
@@ -389,7 +389,7 @@ namespace NBitcoin.Tests
 				Assert.Null(rpc.GetStatusScanTxoutSet());
 
 
-				var extkey = new ExtKey().GetWif(builder.Network);
+				var extkey = new ExtKey(builder.Network.Hasher).GetWif(builder.Network);
 
 				var outputDesc = OutputDescriptor.NewPKH(PubKeyProvider.NewHD(extkey.Neuter(), new KeyPath("0/0"), PubKeyProvider.DeriveType.UNHARDENED), builder.Network);
 				foreach (var item in new[]
@@ -416,7 +416,7 @@ namespace NBitcoin.Tests
 				var rpc = node.CreateRPCClient();
 				builder.StartAll();
 				node.Generate(101);
-				var key = new Key();
+				var key = new Key(builder.Network.Hasher);
 				var dest = key.PubKey.Hash.GetAddress(builder.Network);
 				var txid = rpc.SendToAddress(dest, Money.Coins(1.0m));
 				var funding = rpc.GetRawTransaction(txid);
@@ -425,7 +425,7 @@ namespace NBitcoin.Tests
 
 				var spent = Transaction.Create(builder.Network);
 				spent.Inputs.Add(new TxIn(coin.Outpoint));
-				spent.Outputs.Add(new TxOut(Money.Coins(1.0m), new Key().PubKey.Hash.ScriptPubKey));
+				spent.Outputs.Add(new TxOut(Money.Coins(1.0m), new Key(builder.Network.Hasher).PubKey.Hash.ScriptPubKey));
 
 				var response = rpc.SignRawTransactionWithWallet(new SignRawTransactionRequest()
 				{
@@ -457,7 +457,7 @@ namespace NBitcoin.Tests
 				builder.StartAll();
 				node.Generate(101);
 
-				var key = new Key();
+				var key = new Key(builder.Network.Hasher);
 				var address = key.PubKey.GetAddress(ScriptPubKeyType.Legacy, rpc.Network);
 
 				var txid = rpc.SendToAddress(address, Money.Coins(2), new SendToAddressParameters() { Replaceable = true });
@@ -517,7 +517,7 @@ namespace NBitcoin.Tests
 				}
 
 				// unconfirmed tx doesn't have blockhash, blocktime nor transactiontime.
-				var mempoolTxId = rpc.SendToAddress(new Key().PubKey.GetAddress(ScriptPubKeyType.Legacy, builder.Network), Money.Coins(1));
+				var mempoolTxId = rpc.SendToAddress(new Key(builder.Network.Hasher).PubKey.GetAddress(ScriptPubKeyType.Legacy, builder.Network), Money.Coins(1));
 				txInfo = rpc.GetRawTransactionInfo(mempoolTxId);
 				Assert.Null(txInfo.TransactionTime);
 				Assert.Null(txInfo.BlockHash);
@@ -627,7 +627,7 @@ namespace NBitcoin.Tests
 				Assert.True(getTxOutResponse.IsCoinBase);
 
 				// 2. Spend the first coin
-				var address = new Key().PubKey.GetAddress(ScriptPubKeyType.Legacy, rpc.Network);
+				var address = new Key(builder.Network.Hasher).PubKey.GetAddress(ScriptPubKeyType.Legacy, rpc.Network);
 				Money sendAmount = Money.Parse(rpc.Network.IsDecred ? "4.9" : "49");
 				txId = await rpc.SendToAddressAsync(address, sendAmount);
 
@@ -699,7 +699,7 @@ namespace NBitcoin.Tests
 				node.Start();
 				rpc.Generate(101);
 
-				var k = new Key();
+				var k = new Key(builder.Network.Hasher);
 				var tx = builder.Network.CreateTransaction();
 				tx.Outputs.Add(Money.Coins(1), k);
 				var result = rpc.FundRawTransaction(tx);
@@ -756,7 +756,7 @@ namespace NBitcoin.Tests
 				var rpc = builder.CreateNode().CreateRPCClient();
 				builder.StartAll();
 				rpc.Generate(101);
-				var receiver = new Key();
+				var receiver = new Key(builder.Network.Hasher);
 				var scriptType = builder.Network.IsDecred ? ScriptPubKeyType.Legacy : ScriptPubKeyType.Segwit;
 				var receiverAddress = receiver.GetAddress(scriptType, builder.Network);
 				var txid = rpc.SendToAddress(receiverAddress, Money.Satoshis(satoshis));
@@ -765,8 +765,8 @@ namespace NBitcoin.Tests
 				var txBuilder = builder.Network.CreateTransactionBuilder();
 				txBuilder.AddCoins(coin);
 				txBuilder.AddKeys(receiver);
-				txBuilder.Send(new Key(), Money.Satoshis(0.6m * satoshis));
-				txBuilder.SetChange(new Key().GetAddress(scriptType, builder.Network));
+				txBuilder.Send(new Key(builder.Network.Hasher), Money.Satoshis(0.6m * satoshis));
+				txBuilder.SetChange(new Key(builder.Network.Hasher).GetAddress(scriptType, builder.Network));
 				// The dust should be 294, so should have 2 outputs
 				txBuilder.SendFees(Money.Satoshis(400 - 294));
 				var signed = txBuilder.BuildTransaction(true);
@@ -784,7 +784,7 @@ namespace NBitcoin.Tests
 				var rpc = builder.CreateNode().CreateRPCClient();
 				builder.StartAll();
 				rpc.Generate(101);
-				var receiver = new Key();
+				var receiver = new Key(builder.Network.Hasher);
 				var receiverAddress = receiver.PubKey.WitHash.GetAddress(builder.Network);
 				var owned = Money.Satoshis(10000);
 				var txid = rpc.SendToAddress(receiverAddress, owned);
@@ -800,7 +800,7 @@ namespace NBitcoin.Tests
 #endif
 					Transaction paid = builder.Network.CreateTransaction();
 					paid.Inputs.Add(coin.Outpoint);
-					var dest = new Key().GetAddress(scriptPubKeyType, builder.Network);
+					var dest = new Key(builder.Network.Hasher).GetAddress(scriptPubKeyType, builder.Network);
 					var txout = builder.Network.Consensus.ConsensusFactory.CreateTxOut();
 					txout.ScriptPubKey = dest.ScriptPubKey;
 					var dustThreshold = txout.GetDustThreshold();
@@ -841,7 +841,7 @@ namespace NBitcoin.Tests
 				// 20 total test cases
 
 				#region Bitcoin Address
-				key = new Key();
+				key = new Key(builder.Network.Hasher);
 				multiAddresses = new List<ImportMultiAddress>
 				{
 					new ImportMultiAddress
@@ -856,7 +856,7 @@ namespace NBitcoin.Tests
 				#endregion
 
 				#region ScriptPubKey + internal
-				key = new Key();
+				key = new Key(builder.Network.Hasher);
 				multiAddresses = new List<ImportMultiAddress>
 				{
 					new ImportMultiAddress
@@ -870,7 +870,7 @@ namespace NBitcoin.Tests
 				#endregion
 
 				#region ScriptPubKey + internal  + label
-				key = new Key();
+				key = new Key(builder.Network.Hasher);
 				multiAddresses = new List<ImportMultiAddress>
 				{
 					new ImportMultiAddress
@@ -884,7 +884,7 @@ namespace NBitcoin.Tests
 				#endregion
 
 				#region ScriptPubKey + !internal
-				key = new Key();
+				key = new Key(builder.Network.Hasher);
 				multiAddresses = new List<ImportMultiAddress>
 				{
 					new ImportMultiAddress
@@ -897,7 +897,7 @@ namespace NBitcoin.Tests
 				#endregion
 
 				#region Address + Public key + !internal
-				key = new Key();
+				key = new Key(builder.Network.Hasher);
 				multiAddresses = new List<ImportMultiAddress>
 				{
 					new ImportMultiAddress
@@ -911,7 +911,7 @@ namespace NBitcoin.Tests
 				#endregion
 
 				#region ScriptPubKey + Public key + internal
-				key = new Key();
+				key = new Key(builder.Network.Hasher);
 				multiAddresses = new List<ImportMultiAddress>
 				{
 					new ImportMultiAddress
@@ -926,7 +926,7 @@ namespace NBitcoin.Tests
 				#endregion
 
 				#region Nonstandard scriptPubKey + Public key + !internal
-				key = new Key();
+				key = new Key(builder.Network.Hasher);
 				var nonStandardSpk = Script.FromHex(key.GetScriptPubKey(ScriptPubKeyType.Legacy).ToHex() + new Script(OpcodeType.OP_NOP).ToHex());
 				multiAddresses = new List<ImportMultiAddress>
 				{
@@ -939,7 +939,7 @@ namespace NBitcoin.Tests
 				#endregion
 
 				#region ScriptPubKey + Public key + !internal
-				key = new Key();
+				key = new Key(builder.Network.Hasher);
 				multiAddresses = new List<ImportMultiAddress>
 				{
 					new ImportMultiAddress
@@ -953,7 +953,7 @@ namespace NBitcoin.Tests
 				#endregion
 
 				#region Address + Private key + !watchonly
-				key = new Key();
+				key = new Key(builder.Network.Hasher);
 				multiAddresses = new List<ImportMultiAddress>
 				{
 					new ImportMultiAddress
@@ -981,7 +981,7 @@ namespace NBitcoin.Tests
 				#endregion
 
 				#region Address + Private key + watchonly
-				key = new Key();
+				key = new Key(builder.Network.Hasher);
 				multiAddresses = new List<ImportMultiAddress>
 				{
 					new ImportMultiAddress
@@ -996,7 +996,7 @@ namespace NBitcoin.Tests
 				#endregion
 
 				#region ScriptPubKey + Private key + internal
-				key = new Key();
+				key = new Key(builder.Network.Hasher);
 				multiAddresses = new List<ImportMultiAddress>
 				{
 					new ImportMultiAddress
@@ -1011,7 +1011,7 @@ namespace NBitcoin.Tests
 				#endregion
 
 				#region ScriptPubKey + Private key + !internal
-				key = new Key();
+				key = new Key(builder.Network.Hasher);
 				multiAddresses = new List<ImportMultiAddress>
 				{
 					new ImportMultiAddress
@@ -1041,13 +1041,13 @@ namespace NBitcoin.Tests
 				#endregion
 
 				#region Address + Public key + !Internal + Wrong pubkey
-				key = new Key();
+				key = new Key(builder.Network.Hasher);
 				multiAddresses = new List<ImportMultiAddress>
 				{
 					new ImportMultiAddress
 					{
 						ScriptPubKey = new ImportMultiAddress.ScriptPubKeyObject { Address = key.PubKey.GetAddress(ScriptPubKeyType.Legacy, network) },
-						PubKeys = new [] { new Key().PubKey }
+						PubKeys = new [] { new Key(builder.Network.Hasher).PubKey }
 					}
 				};
 
@@ -1055,13 +1055,13 @@ namespace NBitcoin.Tests
 				#endregion
 
 				#region ScriptPubKey + Public key + internal + Wrong pubkey
-				key = new Key();
+				key = new Key(builder.Network.Hasher);
 				multiAddresses = new List<ImportMultiAddress>
 				{
 					new ImportMultiAddress
 					{
 						ScriptPubKey = new ImportMultiAddress.ScriptPubKeyObject { ScriptPubKey = key.GetScriptPubKey(ScriptPubKeyType.Legacy) },
-						PubKeys = new [] { new Key().PubKey },
+						PubKeys = new [] { new Key(builder.Network.Hasher).PubKey },
 						Internal = true
 					}
 				};
@@ -1070,13 +1070,13 @@ namespace NBitcoin.Tests
 				#endregion
 
 				#region Address + Private key + !watchonly + Wrong private key
-				key = new Key();
+				key = new Key(builder.Network.Hasher);
 				multiAddresses = new List<ImportMultiAddress>
 				{
 					new ImportMultiAddress
 					{
 						ScriptPubKey = new ImportMultiAddress.ScriptPubKeyObject { Address = key.PubKey.GetAddress(ScriptPubKeyType.Legacy, network) },
-						Keys = new [] { new Key().GetWif(network) }
+						Keys = new [] { new Key(builder.Network.Hasher).GetWif(network) }
 					}
 				};
 
@@ -1084,13 +1084,13 @@ namespace NBitcoin.Tests
 				#endregion
 
 				#region ScriptPubKey + Private key + internal + Wrong private key
-				key = new Key();
+				key = new Key(builder.Network.Hasher);
 				multiAddresses = new List<ImportMultiAddress>
 				{
 					new ImportMultiAddress
 					{
 						ScriptPubKey = new ImportMultiAddress.ScriptPubKeyObject { ScriptPubKey = key.GetScriptPubKey(ScriptPubKeyType.Legacy)},
-						Keys = new [] { new Key().GetWif(network) },
+						Keys = new [] { new Key(builder.Network.Hasher).GetWif(network) },
 						Internal = true
 					}
 				};
@@ -1107,7 +1107,7 @@ namespace NBitcoin.Tests
 				#endregion
 
 				#region Test importing of a P2SH-P2WPKH address via descriptor + private key
-				key = new Key();
+				key = new Key(builder.Network.Hasher);
 				var p2shP2wpkhLabel = "Successful P2SH-P2wPKH descriptor import";
 				multiAddresses = new List<ImportMultiAddress>
 				{
@@ -1416,7 +1416,7 @@ namespace NBitcoin.Tests
 
 				var spent = Transaction.Create(builder.Network);
 				spent.Inputs.Add(new TxIn(coin.Outpoint));
-				spent.Outputs.Add(new TxOut(coin.Amount - fee, new Key().PubKey.Hash.ScriptPubKey));
+				spent.Outputs.Add(new TxOut(coin.Amount - fee, new Key(builder.Network.Hasher).PubKey.Hash.ScriptPubKey));
 
 				var signedTx = rpc.SignRawTransactionWithWallet(new SignRawTransactionRequest()
 				{
@@ -1547,7 +1547,7 @@ namespace NBitcoin.Tests
 				builder.StartAll();
 				var network = node.Network;
 
-				var key = new Key();
+				var key = new Key(builder.Network.Hasher);
 				Transaction fundingTx;
 				int outputIndex;
 				decimal spendableAmount;
@@ -1575,13 +1575,13 @@ namespace NBitcoin.Tests
 
 				var tx = Transaction.Create(network);
 				tx.Inputs.Add(fundingTx, outputIndex);
-				tx.Outputs.Add(Money.Coins(spendableAmount), new Key().PubKey.WitHash.GetAddress(network));
+				tx.Outputs.Add(Money.Coins(spendableAmount), new Key(builder.Network.Hasher).PubKey.WitHash.GetAddress(network));
 				tx.Sign(key.GetBitcoinSecret(network), fundingTx.Outputs.AsCoins().ElementAt(outputIndex));
 				var valid = tx.Check();
 
 				var doubleSpend = Transaction.Create(network);
 				doubleSpend.Inputs.Add(fundingTx, outputIndex);
-				doubleSpend.Outputs.Add(Money.Coins(spendableAmount + 0.001m), new Key().PubKey.WitHash.GetAddress(network));
+				doubleSpend.Outputs.Add(Money.Coins(spendableAmount + 0.001m), new Key(builder.Network.Hasher).PubKey.WitHash.GetAddress(network));
 				doubleSpend.Sign(key.GetBitcoinSecret(network), fundingTx.Outputs.AsCoins().ElementAt(outputIndex));
 				valid = doubleSpend.Check();
 
@@ -1644,7 +1644,7 @@ namespace NBitcoin.Tests
 				var fee = Money.Coins(0.0001m);
 				var tx = Transaction.Create(node.Network);
 				tx.Inputs.Add(coin.OutPoint);
-				tx.Outputs.Add(tx.Outputs.CreateNewTxOut(coin.Amount - fee, new Key().PubKey.Hash.ScriptPubKey));
+				tx.Outputs.Add(tx.Outputs.CreateNewTxOut(coin.Amount - fee, new Key(builder.Network.Hasher).PubKey.Hash.ScriptPubKey));
 
 				var result = rpc.TestMempoolAccept(tx, new TestMempoolParameters() { MaxFeeRate = new FeeRate(1.0m) });
 				Assert.False(result.IsAllowed);
@@ -1858,7 +1858,7 @@ namespace NBitcoin.Tests
 				else
 				{
 					// decred does not support generate to address
-					var address = new Key().PubKey.GetAddress(ScriptPubKeyType.Segwit, Network.RegTest);
+					var address = new Key(builder.Network.Hasher).PubKey.GetAddress(ScriptPubKeyType.Segwit, Network.RegTest);
 					var blockHash1 = rpc.GenerateToAddress(1, address);
 					var block = rpc.GetBlock(blockHash1[0]);
 					blocksGenerated++;
@@ -1897,7 +1897,7 @@ namespace NBitcoin.Tests
 				txbuilder.AddCoins(coin);
 				txbuilder.SetChange(await client.GetNewAddressAsync());
 				txbuilder.SendFees(Money.Satoshis(1000));
-				txbuilder.Send(new Key().PubKey.GetScriptPubKey(ScriptPubKeyType.Legacy), Money.Coins(1.0m));
+				txbuilder.Send(new Key(builder.Network.Hasher).PubKey.GetScriptPubKey(ScriptPubKeyType.Legacy), Money.Coins(1.0m));
 				var psbt = txbuilder.BuildPSBT(false, version);
 
 				var resp = await client.WalletProcessPSBTAsync(psbt, false);
@@ -1916,7 +1916,7 @@ namespace NBitcoin.Tests
 				node.Start();
 				var client = node.CreateRPCClient();
 
-				var keys = new Key[] { new Key(), new Key(), new Key() }.Select(k => k.GetWif(Network.RegTest)).ToArray();
+				var keys = new Key[] { new Key(builder.Network.Hasher), new Key(builder.Network.Hasher), new Key(builder.Network.Hasher) }.Select(k => k.GetWif(Network.RegTest)).ToArray();
 				var redeem = PayToMultiSigTemplate.Instance.GenerateScriptPubKey(3, keys.Select(ki => ki.PubKey).ToArray());
 				var funds = PSBTTests.CreateDummyFunds(Network.TestNet, keys, redeem);
 
@@ -1944,7 +1944,7 @@ namespace NBitcoin.Tests
 				// Since sanity check for witness input will not complain about witness-script-without-witnessUtxo
 				CheckPSBTIsAcceptableByRealRPC(psbt.ToBase64(), client);
 
-				var dummyKey = new Key();
+				var dummyKey = new Key(builder.Network.Hasher);
 				var dummyScript = new Script("OP_DUP " + "OP_HASH160 " + Op.GetPushOp(dummyKey.PubKey.Hash.ToBytes()) + " OP_EQUALVERIFY");
 
 				// even after adding coins and scripts ...
@@ -2006,11 +2006,11 @@ namespace NBitcoin.Tests
 				client.SendToAddress(addr, Money.Coins(15));
 				addr = client.GetNewAddress(new GetNewAddressRequest() { AddressType = AddressType.P2SHSegwit });
 				client.SendToAddress(addr, Money.Coins(15));
-				var tmpaddr = new Key();
+				var tmpaddr = new Key(builder.Network.Hasher);
 				client.GenerateToAddress(1, tmpaddr.PubKey.GetAddress(ScriptPubKeyType.Legacy, node.Network));
 
 				// case 1: irrelevant psbt.
-				var keys = new Key[] { new Key(), new Key(), new Key() }.Select(k => k.GetWif(Network.RegTest)).ToArray();
+				var keys = new Key[] { new Key(builder.Network.Hasher), new Key(builder.Network.Hasher), new Key(builder.Network.Hasher) }.Select(k => k.GetWif(Network.RegTest)).ToArray();
 				var redeem = PayToMultiSigTemplate.Instance.GenerateScriptPubKey(3, keys.Select(ki => ki.PubKey).ToArray());
 				var funds = PSBTTests.CreateDummyFunds(Network.TestNet, keys, redeem);
 				var tx = PSBTTests.CreateTxToSpendFunds(funds, keys);
@@ -2022,7 +2022,7 @@ namespace NBitcoin.Tests
 				Assert.Equal(psbt, case1Result.PSBT, PSBTComparerInstance);
 
 				// case 2: psbt relevant to the wallet. (but already finalized)
-				var kOut = new Key();
+				var kOut = new Key(builder.Network.Hasher);
 				tx = builder.Network.CreateTransaction();
 				tx.Outputs.Add(new TxOut(Money.Coins(45), kOut)); // This has to be big enough since the wallet must use whole kinds of address.
 				var fundTxResult = client.FundRawTransaction(tx);
@@ -2089,7 +2089,7 @@ namespace NBitcoin.Tests
 				var nodeBob = builder.CreateNode();
 				var nodeCarol = builder.CreateNode();
 				var nodeFunder = builder.CreateNode();
-				var david = new Key();
+				var david = new Key(builder.Network.Hasher);
 				builder.StartAll();
 
 				// prepare multisig script and watch with node.
@@ -2100,7 +2100,7 @@ namespace NBitcoin.Tests
 				var pubkeys = new List<PubKey> { david.PubKey };
 				pubkeys.AddRange(addrInfos.Select(i => i.PubKey).ToArray());
 				var script = PayToMultiSigTemplate.Instance.GenerateScriptPubKey(4, pubkeys.ToArray());
-				var aMultiP2SH = script.Hash.ScriptPubKey;
+				var aMultiP2SH = script.Hash(builder.Network.Hasher).ScriptPubKey;
 				// var aMultiP2WSH = script.WitHash.ScriptPubKey;
 				// var aMultiP2SH_P2WSH = script.WitHash.ScriptPubKey.Hash.ScriptPubKey;
 				var multiAddresses = new BitcoinAddress[] { aMultiP2SH.GetDestinationAddress(builder.Network) };
@@ -2165,7 +2165,7 @@ namespace NBitcoin.Tests
 				// Assert.Equal(Money.Coins(120), balance);
 				Assert.Equal(Money.Coins(40), balance);
 
-				var aSend = new Key().GetAddress(ScriptPubKeyType.Legacy, nodeAlice.Network);
+				var aSend = new Key(builder.Network.Hasher).GetAddress(ScriptPubKeyType.Legacy, nodeAlice.Network);
 				var outputs = new Dictionary<BitcoinAddress, Money>();
 				outputs.Add(aSend, Money.Coins(10));
 				var fundOptions = new FundRawTransactionOptions() { SubtractFeeFromOutputs = new int[] { 0 }, IncludeWatching = true };
@@ -2216,18 +2216,18 @@ namespace NBitcoin.Tests
 				var addrLegacy = client.GetNewAddress(new GetNewAddressRequest() { AddressType = AddressType.Legacy });
 				var addrBech32 = client.GetNewAddress(new GetNewAddressRequest() { AddressType = AddressType.Bech32 });
 				var addrP2SHSegwit = client.GetNewAddress(new GetNewAddressRequest() { AddressType = AddressType.P2SHSegwit });
-				var pubkeys = new PubKey[] { new Key().PubKey, new Key().PubKey, new Key().PubKey };
+				var pubkeys = new PubKey[] { new Key(builder.Network.Hasher).PubKey, new Key(builder.Network.Hasher).PubKey, new Key(builder.Network.Hasher).PubKey };
 				var redeem = PayToMultiSigTemplate.Instance.GenerateScriptPubKey(2, pubkeys);
-				client.ImportAddress(redeem.Hash);
+				client.ImportAddress(redeem.Hash(builder.Network.Hasher));
 				client.ImportAddress(redeem.WitHash);
-				client.ImportAddress(redeem.WitHash.ScriptPubKey.Hash);
+				client.ImportAddress(redeem.WitHash.ScriptPubKey.Hash(builder.Network.Hasher));
 
 				Assert.NotNull(client.GetAddressInfo(addrLegacy));
 				Assert.NotNull(client.GetAddressInfo(addrBech32));
 				Assert.NotNull(client.GetAddressInfo(addrP2SHSegwit));
-				Assert.NotNull(client.GetAddressInfo(redeem.Hash));
+				Assert.NotNull(client.GetAddressInfo(redeem.Hash(builder.Network.Hasher)));
 				Assert.NotNull(client.GetAddressInfo(redeem.WitHash));
-				Assert.NotNull(client.GetAddressInfo(redeem.WitHash.ScriptPubKey.Hash));
+				Assert.NotNull(client.GetAddressInfo(redeem.WitHash.ScriptPubKey.Hash(builder.Network.Hasher)));
 			}
 		}
 

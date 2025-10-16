@@ -19,7 +19,7 @@ namespace NBitcoin.Tests
 	{
 		class ColoredCoinTester
 		{
-			public ColoredCoinTester([CallerMemberName]string test = null)
+			public ColoredCoinTester([CallerMemberName] string test = null)
 			{
 				var testcase = JsonConvert.DeserializeObject<TestCase[]>(File.ReadAllText("data/openasset-known-tx.json"))
 					.First(t => t.test == test);
@@ -69,9 +69,9 @@ namespace NBitcoin.Tests
 		{
 			public AssetKey()
 			{
-				Key = new Key();
+				Key = new Key(Network.Main.Hasher);
 				ScriptPubKey = Key.PubKey.GetAddress(ScriptPubKeyType.Legacy, Network.Main).ScriptPubKey;
-				Id = ScriptPubKey.Hash.ToAssetId();
+				Id = ScriptPubKey.Hash(Network.Main.Hasher).ToAssetId();
 			}
 			public Key Key
 			{
@@ -126,8 +126,8 @@ namespace NBitcoin.Tests
 			var a1 = new AssetKey();
 			var a2 = new AssetKey();
 			var h = new AssetKey();
-			var sender = new Key().PubKey.GetAddress(ScriptPubKeyType.Legacy, Network.Main);
-			var receiver = new Key().PubKey.GetAddress(ScriptPubKeyType.Legacy, Network.Main);
+			var sender = new Key(Network.Main.Hasher).PubKey.GetAddress(ScriptPubKeyType.Legacy, Network.Main);
+			var receiver = new Key(Network.Main.Hasher).PubKey.GetAddress(ScriptPubKeyType.Legacy, Network.Main);
 
 			colored.Marker = new ColorMarker(new ulong[] { 0, 10, 6, 0, 7, 3 });
 			colored.Inputs.Add(new ColoredEntry(0, new AssetMoney(a1.Id, 3UL)));
@@ -359,7 +359,7 @@ namespace NBitcoin.Tests
 
 
 
-		private ColoredCoinTester CreateTester([CallerMemberName]string test = null)
+		private ColoredCoinTester CreateTester([CallerMemberName] string test = null)
 		{
 			return new ColoredCoinTester(test);
 		}
@@ -444,7 +444,7 @@ namespace NBitcoin.Tests
 		public void CanCreateAssetAddress()
 		{
 			//The issuer first generates a private key: 18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725.
-			var key = new Key(TestUtils.ParseHex("18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725"));
+			var key = new Key(Network.Main.Hasher, TestUtils.ParseHex("18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725"));
 			//He calculates the corresponding address: 16UwLL9Risc3QfPqBUvKofHmBQ7wMtjvM.
 			var address = key.PubKey.Decompress().GetAddress(ScriptPubKeyType.Legacy, Network.Main);
 			Assert.Equal("16UwLL9Risc3QfPqBUvKofHmBQ7wMtjvM", address.ToString());
@@ -453,13 +453,13 @@ namespace NBitcoin.Tests
 			Script script = address.ScriptPubKey;
 			Assert.Equal("OP_DUP OP_HASH160 010966776006953D5567439E5E39F86A0D273BEE OP_EQUALVERIFY OP_CHECKSIG", script.ToString().ToUpper());
 
-			var oo = script.Hash.GetAddress(Network.Main);
+			var oo = script.Hash(Network.Main.Hasher).GetAddress(Network.Main);
 			//The script is hashed: 36e0ea8e93eaa0285d641305f4c81e563aa570a2.
-			Assert.Equal("36e0ea8e93eaa0285d641305f4c81e563aa570a2", script.Hash.ToString());
+			Assert.Equal("36e0ea8e93eaa0285d641305f4c81e563aa570a2", script.Hash(Network.Main.Hasher).ToString());
 
-			Assert.Equal("36e0ea8e93eaa0285d641305f4c81e563aa570a2", key.PubKey.Decompress().Hash.ScriptPubKey.Hash.ToString());
+			Assert.Equal("36e0ea8e93eaa0285d641305f4c81e563aa570a2", key.PubKey.Decompress().Hash.ScriptPubKey.Hash(Network.Main.Hasher).ToString());
 			//Finally, the hash is converted to a base 58 string with checksum using version byte 23: ALn3aK1fSuG27N96UGYB1kUYUpGKRhBuBC. 
-			Assert.Equal("ALn3aK1fSuG27N96UGYB1kUYUpGKRhBuBC", script.Hash.ToAssetId().GetWif(Network.Main).ToString());
+			Assert.Equal("ALn3aK1fSuG27N96UGYB1kUYUpGKRhBuBC", script.Hash(Network.Main.Hasher).ToAssetId().GetWif(Network.Main).ToString());
 		}
 
 	}

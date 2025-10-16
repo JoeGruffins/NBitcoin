@@ -62,8 +62,8 @@ namespace NBitcoin.OpenAsset
 			_Id = assetId;
 		}
 
-		public AssetMoney(IDestination issuer, long quantity)
-			: this(new AssetId(issuer), quantity)
+		public AssetMoney(IDestination issuer, long quantity, Network network)
+			: this(new AssetId(issuer, network.Hasher), quantity)
 		{
 		}
 		public AssetMoney(AssetId assetId, int quantity)

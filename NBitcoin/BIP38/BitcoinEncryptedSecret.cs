@@ -92,7 +92,7 @@ namespace NBitcoin
 			var derived = SCrypt.BitcoinComputeDerivedKey(password, AddressHash);
 			var bitcoinprivkey = DecryptKey(Encrypted, derived);
 
-			key = new Key(bitcoinprivkey, fCompressedIn: IsCompressed);
+			key = new Key(this.Network.Consensus.ConsensusFactory, bitcoinprivkey, fCompressedIn: IsCompressed);
 
 			var addressBytes = Encoders.ASCII.DecodeData(key.PubKey.GetAddress(ScriptPubKeyType.Legacy, Network).ToString());
 			var salt = Hashes.DoubleSHA256(addressBytes).ToBytes().SafeSubarray(0, 4);
@@ -182,7 +182,7 @@ namespace NBitcoin
 			var encrypted = PartialEncrypted.ToArray();
 			//Derive passfactor using scrypt with ownerentropy and the user's passphrase and use it to recompute passpoint
 			byte[] passfactor = CalculatePassFactor(password, LotSequence, OwnerEntropy);
-			var passpoint = CalculatePassPoint(passfactor);
+			var passpoint = CalculatePassPoint(passfactor, this.Network.Consensus.ConsensusFactory);
 
 			var derived = SCrypt.BitcoinComputeDerivedKey2(passpoint, this.AddressHash.Concat(this.OwnerEntropy).ToArray());
 
@@ -191,7 +191,7 @@ namespace NBitcoin
 			var factorb = Hashes.DoubleSHA256(seedb).ToBytes();
 #if HAS_SPAN
 			var eckey = NBitcoinContext.Instance.CreateECPrivKey(passfactor).TweakMul(factorb);
-			key = new Key(eckey, IsCompressed);
+			key = new Key(this.Network.Hasher, eckey, IsCompressed);
 #else
 			var curve = ECKey.Secp256k1;
 
@@ -201,7 +201,7 @@ namespace NBitcoin
 			if (keyBytes.Length < 32)
 				keyBytes = new byte[32 - keyBytes.Length].Concat(keyBytes).ToArray();
 
-			key = new Key(keyBytes, fCompressedIn: IsCompressed);
+			key = new Key(this.Network.Consensus.ConsensusFactory, keyBytes, fCompressedIn: IsCompressed);
 #endif
 			var generatedaddress = key.PubKey.GetAddress(ScriptPubKeyType.Legacy, Network);
 			var addresshash = HashAddress(generatedaddress);
@@ -221,9 +221,9 @@ namespace NBitcoin
 			return Hashes.DoubleSHA256(Encoders.ASCII.DecodeData(address.ToString())).ToBytes().Take(4).ToArray();
 		}
 
-		internal static byte[] CalculatePassPoint(byte[] passfactor)
+		internal static byte[] CalculatePassPoint(byte[] passfactor, IHasher hasher)
 		{
-			return new Key(passfactor, fCompressedIn: true).PubKey.ToBytes();
+			return new Key(hasher, passfactor, fCompressedIn: true).PubKey.ToBytes();
 		}
 
 		internal static byte[] CalculatePassFactor(string password, LotSequence lotSequence, byte[] ownerEntropy)

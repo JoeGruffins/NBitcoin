@@ -27,7 +27,7 @@ namespace NBitcoin
 				psbtToSign.Inputs[0].FinalScriptWitness = script;
 				if (this is BitcoinScriptAddress)
 				{
-					var withScriptParams = PayToWitPubKeyHashTemplate.Instance.ExtractWitScriptParameters(script);
+					var withScriptParams = PayToWitPubKeyHashTemplate.Instance.ExtractWitScriptParameters(script, Network.Hasher);
 					if (withScriptParams is null)
 						return false;
 					psbtToSign.Inputs[0].FinalScriptSig = PayToScriptHashTemplate.Instance.GenerateScriptSig(new Op[0], withScriptParams.Hash.ScriptPubKey);
@@ -39,7 +39,7 @@ namespace NBitcoin
 				try
 				{
 					var hash = BIP322Signature.CreateMessageHash(message, true);
-					var k = sig.RecoverPubKey(hash);
+					var k = sig.RecoverPubKey(hash, Network.Hasher);
 					if (k.GetAddress(ScriptPubKeyType.Legacy, Network) != this)
 						return false;
 					return ECDSASignature.TryParseFromCompact(sig.Signature, out var ecSig) && k.Verify(hash, ecSig);

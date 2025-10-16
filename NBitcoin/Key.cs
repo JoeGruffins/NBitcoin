@@ -40,8 +40,10 @@ namespace NBitcoin
 			internal set;
 		}
 
-		public Key()
-			: this(true)
+		public IHasher Hasher { get; }
+
+		public Key(IHasher hasher)
+			: this(hasher, true)
 		{
 
 		}
@@ -62,15 +64,17 @@ namespace NBitcoin
 		}
 
 #if HAS_SPAN
-		internal Key(Secp256k1.ECPrivKey ecKey, bool compressed)
+		internal Key(IHasher hasher, Secp256k1.ECPrivKey ecKey, bool compressed)
 		{
 			if (ecKey == null)
 				throw new ArgumentNullException(nameof(ecKey));
+			this.Hasher = hasher;
 			this.IsCompressed = compressed;
 			_ECKey = ecKey;
 		}
-		internal Key(ReadOnlySpan<byte> bytes, bool compressed = true)
+		internal Key(IHasher hasher, ReadOnlySpan<byte> bytes, bool compressed = true)
 		{
+			this.Hasher = hasher;
 			this.IsCompressed = compressed;
 			if (bytes.Length != KEY_SIZE)
 			{
@@ -85,8 +89,9 @@ namespace NBitcoin
 		}
 #endif
 
-		public Key(bool fCompressedIn)
+		public Key(IHasher hasher, bool fCompressedIn)
 		{
+			this.Hasher = hasher;
 			IsCompressed = fCompressedIn;
 #if HAS_SPAN
 			Span<byte> data = stackalloc byte[KEY_SIZE];
@@ -111,8 +116,9 @@ namespace NBitcoin
 			_ECKey = new ECKey(vch, true);
 #endif
 		}
-		public Key(byte[] data, int count = -1, bool fCompressedIn = true)
+		public Key(IHasher hasher, byte[] data, int count = -1, bool fCompressedIn = true)
 		{
+			this.Hasher = hasher;
 			if (count == -1)
 				count = data.Length;
 			if (count != KEY_SIZE)
@@ -156,12 +162,12 @@ namespace NBitcoin
 				if (_PubKey is PubKey pubkey)
 					return pubkey;
 #if HAS_SPAN
-				pubkey = new PubKey(_ECKey.CreatePubKey(), IsCompressed);
+				pubkey = new PubKey(_ECKey.CreatePubKey(), IsCompressed, this.Hasher);
 				_PubKey = pubkey;
 				return pubkey;
 #else
 				ECKey key = new ECKey(vch, true);
-				pubkey = key.GetPubKey(IsCompressed);
+				pubkey = key.GetPubKey(IsCompressed, this.Hasher);
 				_PubKey = pubkey;
 				return pubkey;
 #endif
@@ -261,7 +267,7 @@ namespace NBitcoin
 			for (int i = 0; i < 4; i++)
 			{
 				ECKey k = ECKey.RecoverFromSignature(i, sig, hash);
-				if (k != null && k.GetPubKey(true).ToHex() == PubKey.ToHex())
+				if (k != null && k.GetPubKey(true, this.Hasher).ToHex() == PubKey.ToHex())
 				{
 					recId = i;
 					break;
@@ -303,7 +309,7 @@ namespace NBitcoin
 			if (!Utils.ArrayEqual(magic, Encoders.ASCII.DecodeData("BIE1")))
 				throw new ArgumentException("Encrypted text is invalid, Invalid magic number.");
 
-			var ephemeralPubkey = new PubKey(ephemeralPubkeyBytes);
+			var ephemeralPubkey = new PubKey(ephemeralPubkeyBytes, this.Hasher);
 
 			var sharedKey = Hashes.SHA512(ephemeralPubkey.GetSharedPubkey(this).ToBytes());
 			var iv = sharedKey.SafeSubarray(0, 16);
@@ -344,7 +350,7 @@ namespace NBitcoin
 			vout.Slice(32, 32).CopyTo(ccChild);
 			Secp256k1.ECPrivKey keyChild = _ECKey.TweakAdd(vout.Slice(0, 32));
 			vout.Clear();
-			return new Key(keyChild, true);
+			return new Key(this.Hasher, keyChild, true);
 #else
 			byte[]? l = null;
 			if ((nChild >> 31) == 0)
@@ -374,7 +380,7 @@ namespace NBitcoin
 			var keyBytes = key.ToByteArrayUnsigned();
 			if (keyBytes.Length < 32)
 				keyBytes = new byte[32 - keyBytes.Length].Concat(keyBytes).ToArray();
-			return new Key(keyBytes);
+			return new Key(this.Hasher, keyBytes);
 #endif
 		}
 
@@ -407,7 +413,7 @@ namespace NBitcoin
 			return new BitcoinSecret(this, network).ToString();
 		}
 
-#region IDestination Members
+		#region IDestination Members
 
 		Script IDestination.ScriptPubKey
 		{
@@ -418,7 +424,7 @@ namespace NBitcoin
 			}
 		}
 
-#endregion
+		#endregion
 
 		public TransactionSignature Sign(uint256 hash, SigningOptions signingOptions)
 		{
@@ -497,7 +503,7 @@ namespace NBitcoin
 		{
 			if (disposed)
 				return;
-			
+
 			if (disposing)
 			{
 				if (_ECKey is IDisposable keyMaterial)

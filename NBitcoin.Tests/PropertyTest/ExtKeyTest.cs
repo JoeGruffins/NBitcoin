@@ -17,7 +17,7 @@ namespace NBitcoin.Tests.PropertyTest
 		[Trait("PropertyTest", "PropertyTest")]
 		public void ShouldNotChangeByCloneOrConstructor(ExtKey key)
 		{
-			Assert.Equal(ExtKey.CreateFromBytes(key.ToBytes()), new ExtKey(key.Neuter(), key.PrivateKey));
+			Assert.Equal(ExtKey.CreateFromBytes(key.PrivateKey.Hasher, key.ToBytes()), new ExtKey(key.Neuter(), key.PrivateKey));
 		}
 
 		[Property]

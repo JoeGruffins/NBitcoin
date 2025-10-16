@@ -17,6 +17,17 @@ namespace NBitcoin.JsonConverters
 #endif
 	class KeyJsonConverter : JsonConverter
 	{
+		public KeyJsonConverter(Network network)
+		{
+			Network = network;
+		}
+
+		public Network Network
+		{
+			get;
+			set;
+		}
+
 		public override bool CanConvert(Type objectType)
 		{
 			return typeof(Key) == objectType || typeof(PubKey) == objectType || typeof(TaprootPubKey) == objectType || typeof(TaprootInternalPubKey) == objectType;
@@ -32,9 +43,9 @@ namespace NBitcoin.JsonConverters
 
 				var bytes = Encoders.Hex.DecodeData((string)reader.Value);
 				if (objectType == typeof(Key))
-					return new Key(bytes);
+					return new Key(Network.Hasher, bytes);
 				else if (objectType == typeof(PubKey))
-					return new PubKey(bytes);
+					return new PubKey(bytes, Network.Hasher);
 				else if (objectType == typeof(TaprootPubKey))
 					return new TaprootPubKey(bytes);
 				else

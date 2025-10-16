@@ -73,7 +73,7 @@ namespace NBitcoin
 		{
 			get
 			{
-				return Bearer.TxOut.ScriptPubKey.Hash.ToAssetId();
+				return Bearer.TxOut.ScriptPubKey.Hash(Bearer.TxOut.GetConsensusFactory()).ToAssetId();
 			}
 		}
 
@@ -438,7 +438,7 @@ namespace NBitcoin
 			return ScriptPubKey;
 		}
 		public bool IsMalleable => !(ScriptPubKey.IsScriptType(ScriptType.Taproot) ||
-								     GetHashVersion() == HashVersion.WitnessV0);
+									 GetHashVersion() == HashVersion.WitnessV0);
 		public virtual bool CanGetScriptCode
 		{
 			get
@@ -463,7 +463,7 @@ namespace NBitcoin
 			var scriptCoin = this as ScriptCoin;
 			if (scriptCoin != null)
 				return scriptCoin;
-			if (!ScriptCoin.IsCoherent(TxOut.ScriptPubKey, redeemScript, out var error))
+			if (!ScriptCoin.IsCoherent(TxOut.GetConsensusFactory(), TxOut.ScriptPubKey, redeemScript, out var error))
 				throw new ArgumentException(paramName: nameof(redeemScript), message: error);
 			return new ScriptCoin(this, redeemScript);
 		}
@@ -475,7 +475,7 @@ namespace NBitcoin
 			var scriptCoin = this as ScriptCoin;
 			if (scriptCoin != null)
 				return scriptCoin;
-			if (!ScriptCoin.IsCoherent(TxOut.ScriptPubKey, redeemScript, out var error))
+			if (!ScriptCoin.IsCoherent(TxOut.GetConsensusFactory(), TxOut.ScriptPubKey, redeemScript, out var error))
 				return null;
 			return new ScriptCoin(this, redeemScript);
 		}
@@ -647,7 +647,7 @@ namespace NBitcoin
 
 		private void AssertCoherent(string paramName = null)
 		{
-			if (!IsCoherent(TxOut.ScriptPubKey, Redeem, out var error))
+			if (!IsCoherent(TxOut.GetConsensusFactory(), TxOut.ScriptPubKey, Redeem, out var error))
 				throw new ArgumentException(paramName: paramName ?? "redeem", message: error);
 		}
 
@@ -681,13 +681,13 @@ namespace NBitcoin
 			get
 			{
 				return
-					Redeem.Hash.ScriptPubKey == TxOut.ScriptPubKey ?
+					Redeem.Hash(TxOut.GetConsensusFactory()).ScriptPubKey == TxOut.ScriptPubKey ?
 					RedeemType.P2SH :
 					RedeemType.WitnessV0;
 			}
 		}
 
-		public static bool IsCoherent(Script scriptPubKey, Script redeem, out string error)
+		public static bool IsCoherent(IHasher hasher, Script scriptPubKey, Script redeem, out string error)
 		{
 			if (redeem == null)
 				throw new ArgumentNullException(nameof(redeem));
@@ -708,9 +708,9 @@ namespace NBitcoin
 					return false;
 				}
 
-				if (expectedDestination.ScriptPubKey != redeem.Hash.ScriptPubKey)
+				if (expectedDestination.ScriptPubKey != redeem.Hash(hasher).ScriptPubKey)
 				{
-					if (redeem.WitHash.ScriptPubKey.Hash.ScriptPubKey != expectedDestination.ScriptPubKey)
+					if (redeem.WitHash.ScriptPubKey.Hash(hasher).ScriptPubKey != expectedDestination.ScriptPubKey)
 					{
 						error = "The redeem provided does not match the scriptPubKey of the coin";
 						return false;

@@ -583,6 +583,11 @@ namespace NBitcoin.Altcoins
 			{
 				return new DecredTxIn(chainName);
 			}
+
+			public override uint160 Hash160(byte[] data, int offset, int count)
+			{
+				return _hash160(data, offset, count);
+			}
 		}
 
 		public class DecredTxIn : TxIn
@@ -1536,7 +1541,6 @@ namespace NBitcoin.Altcoins
 			.SetBase58Bytes(Base58Type.EXT_PUBLIC_KEY, [0x02, 0xfd, 0xa9, 0x26]) // starts with dpub
 			.SetBase58Bytes(Base58Type.EXT_SECRET_KEY, [0x02, 0xfd, 0xa4, 0xe8]) // starts with dprv
 			.SetNetworkStringParser(new DecredAddressStringParser(ChainName.Mainnet))
-			.SetHasher160(_hash160)
 			.SetMagic(0xd9b400f9)
 			.SetPort(9108)
 			.SetRPCPort(9109)
@@ -1575,7 +1579,6 @@ namespace NBitcoin.Altcoins
 			.SetBase58Bytes(Base58Type.EXT_PUBLIC_KEY, [0x04, 0x20, 0xbd, 0x3d]) // starts with spub
 			.SetBase58Bytes(Base58Type.EXT_SECRET_KEY, [0x04, 0x20, 0xb9, 0x03]) // starts with sprv
 			.SetNetworkStringParser(new DecredAddressStringParser(ChainName.Regtest))
-			.SetHasher160(_hash160)
 			.SetMagic(0x12141c16)
 			.SetPort(19560)
 			.SetRPCPort(19561)
@@ -1614,7 +1617,6 @@ namespace NBitcoin.Altcoins
 			.SetBase58Bytes(Base58Type.EXT_PUBLIC_KEY, [0x04, 0x35, 0x87, 0xd1]) // starts with tpub
 			.SetBase58Bytes(Base58Type.EXT_SECRET_KEY, [0x04, 0x35, 0x83, 0x97]) // starts with tprv
 			.SetNetworkStringParser(new DecredAddressStringParser(ChainName.Testnet))
-			.SetHasher160(_hash160)
 			.SetMagic(0xb194aa75)
 			.SetPort(19108)
 			.SetRPCPort(19109)

@@ -8,9 +8,13 @@ namespace NBitcoin.BuilderExtensions
 {
 	public class P2PKHBuilderExtension : BuilderExtension
 	{
+		public P2PKHBuilderExtension(IHasher hasher) : base(hasher)
+		{
+		}
+
 		public override bool CanDeduceScriptPubKey(Script scriptSig)
 		{
-			var para = PayToPubkeyHashTemplate.Instance.ExtractScriptSigParameters(scriptSig);
+			var para = PayToPubkeyHashTemplate.Instance.ExtractScriptSigParameters(scriptSig, Hasher);
 			return para != null && para.PublicKey != null;
 		}
 
@@ -27,7 +31,7 @@ namespace NBitcoin.BuilderExtensions
 
 		public override Script DeduceScriptPubKey(Script scriptSig)
 		{
-			var p2pkh = PayToPubkeyHashTemplate.Instance.ExtractScriptSigParameters(scriptSig);
+			var p2pkh = PayToPubkeyHashTemplate.Instance.ExtractScriptSigParameters(scriptSig, Hasher);
 			return p2pkh.PublicKey.Hash.ScriptPubKey;
 		}
 
@@ -82,7 +86,7 @@ namespace NBitcoin.BuilderExtensions
 				{
 					try
 					{
-						pk = new PubKey(data);
+						pk = new PubKey(data, inputSigningContext.TransactionContext.Builder.Network.Hasher);
 					}
 					catch { }
 				}

@@ -427,7 +427,7 @@ namespace NBitcoin.RPC
 				return;
 			}
 #endif
-			var address = new Key().GetAddress(type, rpc.Network);
+			var address = new Key(rpc.Network.Hasher).GetAddress(type, rpc.Network);
 			if (address == null)
 			{
 				setResult(false);

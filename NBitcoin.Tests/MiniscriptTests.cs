@@ -141,7 +141,7 @@ namespace NBitcoin.Tests
 			var internalKey = new TaprootPubKey(Encoders.Hex.DecodeData("a34b99f22c790c4e36b2b3c2c35a36db06226e41c692fc82b8b56ac1c540c5bd"));
 			var A = new BitcoinExtKey("xprvA2JDeKCSNNZky6uBCviVfJSKyQ1mDYahRjijr5idH2WwLsEd4Hsb2Tyh8RfQMuPh7f7RtyzTtdrbdqqsunu5Mm3wDvUAKRHSC34sJ7in334", Network.Main).Neuter().Derive(KeyPath.Parse("0")).GetPublicKey().TaprootPubKey;
 			var B = new BitcoinExtPubKey("xpub6ERApfZwUNrhLCkDtcHTcxd75RbzS1ed54G1LkBUHQVHQKqhMkhgbmJbZRkrgZw4koxb5JaHWkY4ALHY2grBGRjaDMzQLcgJvLJuZZvRcEL", Network.Main).GetPublicKey().TaprootPubKey;
-			var C = new PubKey("02df12b7035bdac8e3bab862a3a83d06ea6b17b6753d52edecba9be46f5d09e076").TaprootPubKey;
+			var C = new PubKey("02df12b7035bdac8e3bab862a3a83d06ea6b17b6753d52edecba9be46f5d09e076", Network.Main).TaprootPubKey;
 			var D = privKey.PubKey.TaprootPubKey;
 			settings.AllowedParameters = ParameterTypeFlags.NamedParameter;
 			parsed = Miniscript.Parse("tr(InternalKey,{pk(A),{{pk(B),pk(C)},pk(D)}})", settings);
@@ -208,7 +208,7 @@ namespace NBitcoin.Tests
 		[InlineData("pkh(@0/**)", ScriptPubKeyType.Legacy)]
 		public void CanGenerateSegwitAndTaprootFromMiniscript(string str, ScriptPubKeyType scriptPubKeyType)
 		{
-			var root = new ExtKey().GetWif(Network.TestNet);
+			var root = new ExtKey(Network.TestNet).GetWif(Network.TestNet);
 			var account = root.Derive(new KeyPath("48'/1'/0'/2'"));
 			var derivedPubKey = account.Derive(new KeyPath("1/123")).GetPublicKey();
 			var keyNode = new HDKeyNode(new KeyPath("48'/1'/0'/2'").ToRootedKeyPath(root), account.Neuter());
@@ -260,7 +260,7 @@ namespace NBitcoin.Tests
 
 			script = Miniscript.Parse("sh(wpkh([aaaaaaaa/49h/1h/0h]tpubDDJa9q5audQLxtPyhrgapyByEHHSWQxKrADKA8dX8xNqAV5zrnnCVyHP9aNxojxi27Beus36V8D4Lqd6dZEDonxVMofgDK92zNLfeKhC54J/<0;1>/*))", settings);
 			expectedScripts = script.Derive(AddressIntent.Deposit, 0).Miniscript.ToScripts();
-			var pk = new PubKey("035bb92b75b376aa23a6ce7a19c2957b43b7b99377d88017bc113c65eb021253f6");
+			var pk = new PubKey("035bb92b75b376aa23a6ce7a19c2957b43b7b99377d88017bc113c65eb021253f6", Network.RegTest);
 			var expectedScriptPubKey = pk.GetScriptPubKey(ScriptPubKeyType.SegwitP2SH);
 			var expectedRedeem = pk.GetScriptPubKey(ScriptPubKeyType.Segwit);
 			var expectedScriptCode = pk.GetScriptPubKey(ScriptPubKeyType.Legacy);
@@ -275,7 +275,7 @@ namespace NBitcoin.Tests
 		[Fact]
 		public void CanGenerateSH()
 		{
-			var root = new ExtKey().GetWif(Network.TestNet);
+			var root = new ExtKey(Network.TestNet).GetWif(Network.TestNet);
 			var parsingSettings = new MiniscriptParsingSettings(root.Network) { Dialect = MiniscriptDialect.BIP388 };
 			var account = root.Derive(new KeyPath("48'/1'/0'/2'"));
 			var derivedPubKey = account.Derive(new KeyPath("1/123")).GetPublicKey();
@@ -292,14 +292,14 @@ namespace NBitcoin.Tests
 			miniscript = miniscript.ReplaceKeyPlaceholdersByHDKeys([keyNode]);
 			miniscript = miniscript.Derive(AddressIntent.Change, 123).Miniscript;
 			scripts = miniscript.ToScripts();
-			Assert.Equal(pkh.Hash.ScriptPubKey, scripts.ScriptPubKey);
+			Assert.Equal(pkh.Hash(Network.TestNet).ScriptPubKey, scripts.ScriptPubKey);
 			Assert.Equal(pkh, scripts.RedeemScript);
 
 			miniscript = Miniscript.Parse("sh(wsh(pkh(@0/**)))", parsingSettings);
 			miniscript = miniscript.ReplaceKeyPlaceholdersByHDKeys([keyNode]);
 			miniscript = miniscript.Derive(AddressIntent.Change, 123).Miniscript;
 			scripts = miniscript.ToScripts();
-			Assert.Equal(pkh.WitHash.ScriptPubKey.Hash.ScriptPubKey, scripts.ScriptPubKey);
+			Assert.Equal(pkh.WitHash.ScriptPubKey.Hash(Network.TestNet).ScriptPubKey, scripts.ScriptPubKey);
 			Assert.Equal(pkh, scripts.RedeemScript);
 		}
 
@@ -374,7 +374,7 @@ namespace NBitcoin.Tests
 			var dKeys = keys.Select(k => k.Key.Derive(0).Derive(1).GetPublicKey().ECKey).ToArray();
 			var musigNested = ECPubKey.MusigAggregate([dKeys[2], dKeys[3]], true);
 			var musig = ECPubKey.MusigAggregate([dKeys[0], dKeys[1], musigNested], true);
-			var expectedPubKey = new ExtPubKey(new PubKey(musig, true), DeriveVisitor.BIP0328CC).Derive(0).Derive(1).GetPublicKey();
+			var expectedPubKey = new ExtPubKey(new PubKey(musig, true, Network.Main), DeriveVisitor.BIP0328CC).Derive(0).Derive(1).GetPublicKey();
 			var expectedScript = expectedPubKey.GetScriptPubKey(ScriptPubKeyType.TaprootBIP86);
 			Assert.Equal(expectedScript, m.ToScripts().ScriptPubKey);
 
@@ -418,8 +418,8 @@ namespace NBitcoin.Tests
 		public void CanReplaceParameters()
 		{
 			var parsed = Miniscript.Parse("and_v(or_c(pk(A),or_c(pk(B),v:older(C))),pk(A))", new MiniscriptParsingSettings(Network.Main, KeyType.Classic) { AllowedParameters = ParameterTypeFlags.NamedParameter });
-			var a = new Key().PubKey;
-			var b = new Key().PubKey;
+			var a = new Key(Network.Main).PubKey;
+			var b = new Key(Network.Main).PubKey;
 			new MiniscriptParsingSettings(Network.Main, KeyType.Classic);
 			var exception = Assert.Throws<MiniscriptReplacementException>(() => parsed.ReplaceParameters(new()
 			{
@@ -536,7 +536,7 @@ namespace NBitcoin.Tests
 		{
 			return Enumerable.Range(0, count).Select(_ =>
 			{
-				var root = new ExtKey().GetWif(Network.RegTest);
+				var root = new ExtKey(Network.RegTest).GetWif(Network.RegTest);
 				return new HDKeyNode(new KeyPath("48'/1'/0'").ToRootedKeyPath(root.ExtKey), root.Neuter());
 			}).ToArray();
 		}
@@ -586,7 +586,7 @@ namespace NBitcoin.Tests
 
 		private MultipathNode CreateMultiPathKeyInformation()
 		{
-			var k = new ExtKey().GetWif(Network.RegTest);
+			var k = new ExtKey(Network.RegTest).GetWif(Network.RegTest);
 			var root = k;
 			var accountKeyPath = new KeyPath("44'/1'");
 			var account = k.Derive(accountKeyPath).Neuter();
@@ -618,7 +618,7 @@ namespace NBitcoin.Tests
 			Assert.Equal("d4ab66f1/48'/1'/0'/2'", k.RootedKeyPath.ToString());
 			Assert.Equal(new BitcoinExtPubKey("tpubDEXYN145WM4rVKtcWpySBYiVQ229pmrnyAGJT14BBh2QJr7ABJswchDicZfFaauLyXhDad1nCoCZQEwAW87JPotP93ykC9WJvoASnBjYBxW", Network.RegTest), k.Key);
 
-			var xpriv = new ExtKey().GetWif(Network.RegTest);
+			var xpriv = new ExtKey(Network.RegTest).GetWif(Network.RegTest); // TODO:: NO naaaa.
 			i = $"[d4ab66f1/48'/1'/0'/2']{xpriv}";
 			k = HDKeyNode.Parse(i, Network.RegTest);
 			Assert.Equal(i, k.ToString());
