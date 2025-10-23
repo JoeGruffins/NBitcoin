@@ -539,7 +539,7 @@ namespace NBitcoin.Scripting
 				{
 					foreach (var (desc, depth) in this.TapLeafs.IterateScripts())
 					{
-						if (!desc.TryExpand(0, _ => null, repo, out var scripts, true))
+						if (!desc.TryExpand(this.Network.Hasher, 0, _ => null, repo, out var scripts, true))
 							throw new Exception($"Failed to expand descriptor {desc}. This should never happen");
 
 						foreach (var s in scripts)
@@ -606,13 +606,14 @@ namespace NBitcoin.Scripting
 		/// <param name="outputScripts">resulted scriptPubKey</param>
 		/// <returns></returns>
 		public bool TryExpand(
+			IHasher hasher,
 			uint pos,
 			ISigningRepository repo,
 			[MaybeNullWhen(false)] out List<Script> outputScripts,
 			IDictionary<uint, ExtPubKey>? cache = null
 			)
 		{
-			return TryExpand(pos, repo.GetPrivateKey, repo, out outputScripts, false, cache);
+			return TryExpand(hasher, pos, repo.GetPrivateKey, repo, out outputScripts, false, cache);
 		}
 
 
@@ -626,6 +627,7 @@ namespace NBitcoin.Scripting
 		/// <param name="outputScripts">resulted scriptPubKey</param>
 		/// <returns></returns>
 		public bool TryExpand(
+			IHasher hasher,
 			uint pos,
 			Func<KeyId, Key?> privateKeyProvider,
 			ISigningRepository repo,
@@ -637,7 +639,7 @@ namespace NBitcoin.Scripting
 			if (privateKeyProvider == null) throw new ArgumentNullException(nameof(privateKeyProvider));
 			if (repo == null) throw new ArgumentNullException(nameof(repo));
 			outputScripts = new List<Script>();
-			return TryExpand(pos, privateKeyProvider, repo, outputScripts, isTaproot, cache);
+			return TryExpand(hasher, pos, privateKeyProvider, repo, outputScripts, isTaproot, cache);
 		}
 
 		private bool ExpandPkHelper(
@@ -665,6 +667,7 @@ namespace NBitcoin.Scripting
 		}
 
 		private bool TryExpand(
+			IHasher hasher,
 			uint pos,
 			Func<KeyId, Key?> privateKeyProvider,
 			ISigningRepository repo,
@@ -712,23 +715,23 @@ namespace NBitcoin.Scripting
 					return true;
 				case SH self:
 					var subRepo1 = new FlatSigningRepository();
-					if (!self.Inner.TryExpand(pos, privateKeyProvider, subRepo1, out var shInnerResult, false))
+					if (!self.Inner.TryExpand(hasher, pos, privateKeyProvider, subRepo1, out var shInnerResult, false))
 						return false;
 					repo.Merge(subRepo1);
 					foreach (var inner in shInnerResult)
 					{
-						repo.SetScript(inner.Hash, inner);
-						outputScripts.Add(inner.Hash.ScriptPubKey);
+						repo.SetScript(inner.Hash(hasher), inner);
+						outputScripts.Add(inner.Hash(hasher).ScriptPubKey);
 					}
 					return true;
 				case WSH self:
 					var subRepo2 = new FlatSigningRepository();
-					if (!self.Inner.TryExpand(pos, privateKeyProvider, subRepo2, out var wshInnerResult, false))
+					if (!self.Inner.TryExpand(hasher, pos, privateKeyProvider, subRepo2, out var wshInnerResult, false))
 						return false;
 					repo.Merge(subRepo2);
 					foreach (var inner in wshInnerResult)
 					{
-						repo.SetScript(inner.Hash, inner);
+						repo.SetScript(inner.Hash(hasher), inner);
 						repo.SetScript(inner.WitHash.HashForLookUp, inner);
 						outputScripts.Add(inner.WitHash.ScriptPubKey);
 					}
@@ -744,7 +747,7 @@ namespace NBitcoin.Scripting
 					{
 						foreach (var (od, depth) in self.TapLeafs.IterateScripts())
 						{
-							if (!od.TryExpand(pos, privateKeyProvider, repo, out var subScripts , true))
+							if (!od.TryExpand(this.Network.Hasher, pos, privateKeyProvider, repo, out var subScripts , true))
 								return false;
 							foreach (var s in subScripts)
 							{
@@ -804,15 +807,15 @@ namespace NBitcoin.Scripting
 					if (key.IsCompressed)
 					{
 						res.Add(key.WitHash.ScriptPubKey);
-						res.Add(key.WitHash.ScriptPubKey.Hash.ScriptPubKey);
-						repo.SetScript(key.WitHash.ScriptPubKey.Hash, key.WitHash.ScriptPubKey);
+						res.Add(key.WitHash.ScriptPubKey.Hash(key.Hasher).ScriptPubKey);
+						repo.SetScript(key.WitHash.ScriptPubKey.Hash(key.Hasher), key.WitHash.ScriptPubKey);
 					}
 					return res;
 #if HAS_SPAN
 				case RawTr _:
 					return new List<Script> { key.TaprootPubKey.ScriptPubKey };
 #endif
-				// Other cases never calls this function. Because this method is just a helper for expanding above cases
+					// Other cases never calls this function. Because this method is just a helper for expanding above cases
 			}
 
 			throw new Exception("Unreachable");
@@ -931,17 +934,17 @@ namespace NBitcoin.Scripting
 		};
 
 #if HAS_SPAN
-		private static PubKeyProvider InferXOnlyPubkey(TaprootPubKey xkey, ISigningRepository repo)
+		private static PubKeyProvider InferXOnlyPubkey(TaprootPubKey xkey, ISigningRepository repo, Network network)
 		{
-			var keyProvider = PubKeyProvider.NewConst(xkey);
+			var keyProvider = PubKeyProvider.NewConst(xkey, network.Hasher);
 			return
 				repo.TryGetKeyOrigin(xkey, out var origin) ?
 				PubKeyProvider.NewOrigin(origin, keyProvider) :
 				keyProvider;
 		}
 
-		private static PubKeyProvider InferXOnlyPubkey(TaprootInternalPubKey xkey, ISigningRepository repo)
-			=> InferXOnlyPubkey(new TaprootPubKey(xkey.pubkey), repo);
+		private static PubKeyProvider InferXOnlyPubkey(TaprootInternalPubKey xkey, ISigningRepository repo, Network network)
+			=> InferXOnlyPubkey(new TaprootPubKey(xkey.pubkey), repo, network);
 
 
 		private static OutputDescriptor? InferMultiA(Script sc, ISigningRepository repo, Network network)
@@ -956,7 +959,7 @@ namespace NBitcoin.Scripting
 
 			foreach (var key in pks)
 			{
-				keys.Add(InferXOnlyPubkey(key, repo));
+				keys.Add(InferXOnlyPubkey(key, repo, network));
 			}
 
 			return NewMulti((uint)m, keys, isSorted: false, network, isTapScript: true);
@@ -996,7 +999,7 @@ namespace NBitcoin.Scripting
 				if (b.Length == 34 && b[0] == 32 && b[33] == (byte)OpcodeType.OP_CHECKSIG)
 				{
 					var xonlyKey = new TaprootPubKey(b.AsSpan(1, 32));
-					return NewPK(InferXOnlyPubkey(xonlyKey, repo), network);
+					return NewPK(InferXOnlyPubkey(xonlyKey, repo, network), network);
 				}
 
 				var ret = InferMultiA(sc, repo, network);
@@ -1011,7 +1014,7 @@ namespace NBitcoin.Scripting
 					if (repo.TryGetTaprootSpendInfo(pk, out var taprootSpendInfo))
 					{
 						var keyProvider =
-							InferXOnlyPubkey(taprootSpendInfo.InternalPubKey, repo);
+							InferXOnlyPubkey(taprootSpendInfo.InternalPubKey, repo, network);
 
 						if (taprootSpendInfo.InferTaprootTree(pk, out var tree))
 						{
@@ -1045,7 +1048,7 @@ namespace NBitcoin.Scripting
 					}
 					else
 					{
-						var keyProvider = PubKeyProvider.NewConst(pk);
+						var keyProvider = PubKeyProvider.NewConst(pk, network.Hasher);
 						keyProvider =
 							repo.TryGetKeyOrigin(pk, out var keyOrigin)
 								? PubKeyProvider.NewOrigin(keyOrigin, keyProvider)
@@ -1058,7 +1061,7 @@ namespace NBitcoin.Scripting
 
 			if (template is PayToPubkeyTemplate p2pkTemplate)
 			{
-				var pk = p2pkTemplate.ExtractScriptPubKeyParameters(sc)!;
+				var pk = p2pkTemplate.ExtractScriptPubKeyParameters(sc, network.Hasher)!;
 				return OutputDescriptor.NewPK(InferPubKey(pk, repo), network);
 			}
 			if (template is PayToPubkeyHashTemplate p2pkhTemplate)
@@ -1069,7 +1072,7 @@ namespace NBitcoin.Scripting
 			}
 			if (template is PayToMultiSigTemplate p2MultiSigTemplate)
 			{
-				var data = p2MultiSigTemplate.ExtractScriptPubKeyParameters(sc)!;
+				var data = p2MultiSigTemplate.ExtractScriptPubKeyParameters(sc, network.Hasher)!;
 				var pks = data.PubKeys;
 				var orderedPks = pks.OrderBy(pk => pk);
 				var isOrdered = orderedPks.SequenceEqual(pks);
@@ -1117,7 +1120,7 @@ namespace NBitcoin.Scripting
 
 		#endregion
 
-		# region string (De)serializer
+		#region string (De)serializer
 
 		public override string ToString()
 		{
@@ -1397,7 +1400,7 @@ namespace NBitcoin.Scripting
 						return -1640531527 + self.OutputPubKeyProvider.GetHashCode() + ((num << 6) + (num >> 2));
 					}
 #endif
-			default:
+				default:
 					throw new Exception("Unreachable!");
 			}
 		}
@@ -1409,8 +1412,8 @@ namespace NBitcoin.Scripting
 		static readonly char[] CHECKSUM_CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l".ToCharArray();
 		static readonly string INPUT_CHARSET_STRING =
 		"0123456789()[],'/*abcdefgh@:$%{}" +
-        "IJKLMNOPQRSTUVWXYZ&+-.;<=>?!^_|~" +
-        "ijklmnopqrstuvwxyzABCDEFGH`#\"\\ ";
+		"IJKLMNOPQRSTUVWXYZ&+-.;<=>?!^_|~" +
+		"ijklmnopqrstuvwxyzABCDEFGH`#\"\\ ";
 
 		static readonly char[] INPUT_CHARSET = INPUT_CHARSET_STRING.ToCharArray();
 
@@ -1422,7 +1425,7 @@ namespace NBitcoin.Scripting
 			ulong c = 1;
 			int cls = 0;
 			int clscount = 0;
-			foreach(var ch in desc.ToCharArray())
+			foreach (var ch in desc.ToCharArray())
 			{
 				var pos = INPUT_CHARSET_STRING.IndexOf(ch);
 				if (pos == -1)

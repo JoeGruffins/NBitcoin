@@ -127,8 +127,8 @@ namespace NBitcoin.Tests
 		{
 			if (hash.Equals("SHA-256", StringComparison.OrdinalIgnoreCase))
 				return () => new NBitcoin.BouncyCastle.Crypto.Digests.Sha256Digest();
-//			if (hash.Equals("SHA-1", StringComparison.OrdinalIgnoreCase))
-//				return () => new NBitcoin.BouncyCastle.Crypto.Digests.Sha1Digest();
+			//			if (hash.Equals("SHA-1", StringComparison.OrdinalIgnoreCase))
+			//				return () => new NBitcoin.BouncyCastle.Crypto.Digests.Sha1Digest();
 			if (hash.Equals("SHA-224", StringComparison.OrdinalIgnoreCase))
 				return () => new NBitcoin.BouncyCastle.Crypto.Digests.Sha224Digest();
 
@@ -259,7 +259,7 @@ namespace NBitcoin.Tests
 			var rnd = new Random();
 			for (var i = 0; i < 100; i++)
 			{
-				var key = new Key();
+				var key = new Key(Network.Main.Hasher);
 				var msgLen = rnd.Next(10, 1000);
 				var msg = new byte[msgLen];
 				rnd.NextBytes(msg);

@@ -16,7 +16,7 @@ namespace NBitcoin.Bench
 		[GlobalSetup]
 		public void Setup()
 		{
-			var seed = new ExtKey();
+			var seed = new ExtKey(Network.Main);
 			accPath = new KeyPath("87'/0'/0'").ToRootedKeyPath(seed.GetPublicKey().GetHDFingerPrint());
 			acc = seed.Derive(accPath.KeyPath).AsHDKeyCache();
 			var coins = Enumerable
@@ -28,7 +28,7 @@ namespace NBitcoin.Bench
 			{
 				tx.Inputs.Add(c.Outpoint);
 			}
-			tx.Outputs.Add(Money.Coins(1299.0m), new Key());
+			tx.Outputs.Add(Money.Coins(1299.0m), new Key(Network.Main));
 			var psbt = PSBT.FromTransaction(tx, Network.Main);
 			psbt.AddCoins(coins);
 			for (int i = 0; i < coins.Length; i++)

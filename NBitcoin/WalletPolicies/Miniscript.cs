@@ -299,7 +299,7 @@ namespace NBitcoin.WalletPolicies
 				{
 					node = (key.Length, ctx.ExpectedKeyType) switch
 					{
-						(33 * 2 or 65 * 2, null or KeyType.Classic) => new Value.PubKeyValue(new PubKey(Encoders.Hex.DecodeData(key.Value))),
+						(33 * 2 or 65 * 2, null or KeyType.Classic) => new Value.PubKeyValue(new PubKey(Encoders.Hex.DecodeData(key.Value), ctx.Network.Hasher)),
 						(32 * 2, null or KeyType.Taproot) => new Value.TaprootPubKeyValue(new TaprootPubKey(Encoders.Hex.DecodeData(key.Value))),
 						_ => null
 					};

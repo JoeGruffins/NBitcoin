@@ -53,7 +53,7 @@ namespace NBitcoin.Tests
 		[Fact]
 		public void CanSign()
 		{
-			var k = new Key();
+			var k = new Key(Network.Main);
 			var p = k.GetAddress(ScriptPubKeyType.SegwitP2SH, Network.Main);
 
 			var privateKey = new BitcoinSecret("KwTbAxmBXjoZM3bzbXixEr9nxLhyYSM4vp2swet58i19bw9sqk5z", Network.Main)
@@ -84,7 +84,7 @@ namespace NBitcoin.Tests
 				PayToMultiSigTemplate.Instance.GenerateScriptPubKey(2, true,
 					new PubKey[] {k1.PubKey, k2.PubKey, k3.PubKey});
 			var p2wshScriptPubKey = redeem.WitHash.ScriptPubKey;
-			var p2ShAddressScriptPubKey = redeem.Hash.ScriptPubKey;
+			var p2ShAddressScriptPubKey = redeem.Hash(Network.Main).ScriptPubKey;
 			var p2shAddress = p2ShAddressScriptPubKey.GetDestinationAddress(Network.Main);
 			var p2wshAddress = p2wshScriptPubKey.GetDestinationAddress(Network.Main);
 
@@ -246,8 +246,8 @@ namespace NBitcoin.Tests
 		[Fact]
 		public void CanDoProofOfFunds()
 		{
-			var key = new Key();
-			var key2 = new Key();
+			var key = new Key(Network.Main);
+			var key2 = new Key(Network.Main);
 			var addr = key.GetAddress(ScriptPubKeyType.Segwit, Network.Main);
 			var addr2 = key2.GetAddress(ScriptPubKeyType.Segwit, Network.Main);
 			var addr3 = key2.GetAddress(ScriptPubKeyType.SegwitP2SH, Network.Main);
@@ -255,7 +255,7 @@ namespace NBitcoin.Tests
 			var multisigRedeem =
 				PayToMultiSigTemplate.Instance.GenerateScriptPubKey(2, new[] {key.PubKey, key2.PubKey});
 			var p2wshScriptPubKey = multisigRedeem.WitHash.ScriptPubKey;
-			var p2ShAddressScriptPubKey = multisigRedeem.Hash.ScriptPubKey;
+			var p2ShAddressScriptPubKey = multisigRedeem.Hash(Network.Main).ScriptPubKey;
 
 			var p2shAddress = p2ShAddressScriptPubKey.GetDestinationAddress(Network.Main);
 			var p2wshAddress = p2wshScriptPubKey.GetDestinationAddress(Network.Main);

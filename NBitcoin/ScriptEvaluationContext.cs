@@ -477,8 +477,11 @@ namespace NBitcoin
 			}
 		}
 
-		public ScriptEvaluationContext()
+		public IHasher Hasher { get; }
+
+		public ScriptEvaluationContext(IHasher hasher)
 		{
+			Hasher = hasher;
 			ScriptVerify = NBitcoin.ScriptVerify.Standard;
 			Error = ScriptError.UnknownError;
 		}
@@ -853,12 +856,6 @@ namespace NBitcoin
 				return SetError(ScriptError.EvalFalse);
 			return true;
 		}
-
-		public Func<byte[], int, int, uint160> Hash160
-		{
-			get;
-			set;
-		} = Hashes.Hash160;
 
 		private bool IsOpSuccess(OpcodeType code)
 		{
@@ -1550,7 +1547,7 @@ namespace NBitcoin
 									else if (opcode.Code == OpcodeType.OP_SHA256)
 										vchHash = Hashes.SHA256(vch, 0, vch.Length);
 									else if (opcode.Code == OpcodeType.OP_HASH160)
-										vchHash = this.Hash160(vch, 0, vch.Length).ToBytes();
+										vchHash = this.Hasher.Hash160(vch, 0, vch.Length).ToBytes();
 									else if (opcode.Code == OpcodeType.OP_HASH256)
 										vchHash = Hashes.DoubleSHA256(vch, 0, vch.Length).ToBytes();
 									_stack.Pop();
@@ -1746,7 +1743,7 @@ namespace NBitcoin
 
 		private bool EvalChecksig(byte[] sig, byte[] pubkey, Script s, int pbegincodehash, TransactionChecker checker, HashVersion sigversion, out bool success)
 		{
-			switch	(sigversion)
+			switch (sigversion)
 			{
 				case HashVersion.Original:
 				case HashVersion.WitnessV0:
@@ -2253,7 +2250,7 @@ namespace NBitcoin
 			PubKey pubkey = null;
 			try
 			{
-				pubkey = new PubKey(vchPubKey);
+				pubkey = new PubKey(vchPubKey, this.Hasher);
 			}
 			catch (Exception)
 			{
@@ -2321,7 +2318,7 @@ namespace NBitcoin
 
 		public ScriptEvaluationContext Clone()
 		{
-			return new ScriptEvaluationContext()
+			return new ScriptEvaluationContext(this.Hasher)
 			{
 				_stack = new ContextStack<byte[]>(_stack),
 				ScriptVerify = ScriptVerify,

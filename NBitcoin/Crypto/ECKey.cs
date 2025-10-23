@@ -92,13 +92,13 @@ namespace NBitcoin.Crypto
 #pragma warning restore 618
 		}
 
-		public PubKey GetPubKey(bool isCompressed)
+		public PubKey GetPubKey(bool isCompressed, IHasher hasher)
 		{
 			var q = GetPublicKeyParameters().Q;
 			//Pub key (q) is composed into X and Y, the compressed form only include X, which can derive Y along with 02 or 03 prepent depending on whether Y in even or odd.
 			q = q.Normalize();
 			var result = Secp256k1.Curve.CreatePoint(q.XCoord.ToBigInteger(), q.YCoord.ToBigInteger()).GetEncoded(isCompressed);
-			return new PubKey(result);
+			return new PubKey(result, hasher);
 		}
 
 

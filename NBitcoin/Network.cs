@@ -147,7 +147,7 @@ namespace NBitcoin
 		BLINDED_ADDRESS
 	}
 
-	public partial class Network
+	public partial class Network : IHasher
 	{
 		static Network()
 		{
@@ -222,6 +222,11 @@ namespace NBitcoin
 		public Transaction CreateTransaction()
 		{
 			return Consensus.ConsensusFactory.CreateTransaction();
+		}
+
+		public uint160 Hash160(byte[] data, int offset, int count)
+		{
+			return Consensus.ConsensusFactory.Hash160(data, offset, count);
 		}
 	}
 
@@ -790,6 +795,8 @@ namespace NBitcoin
 			}
 		}
 
+		public IHasher Hasher => Consensus.ConsensusFactory; // TODO: Remove.
+
 		private Network(string name, byte[] genesis, uint magic, string? uriScheme, INetworkSet networkSet)
 		{
 			if (name == null)
@@ -888,7 +895,6 @@ namespace NBitcoin
 			network.nIsDecred = builder._IsDecred;
 			network.NetworkStringParser = builder._NetworkStringParser;
 			network.MaxP2PVersion = builder._MaxP2PVersion == null ? BITCOIN_MAX_P2P_VERSION : builder._MaxP2PVersion.Value;
-			network.Hash160 = builder._Hash160;
 
 #if !NOSOCKET
 			foreach (var seed in builder.vSeeds)
@@ -1177,12 +1183,6 @@ namespace NBitcoin
 			}
 			return null;
 		}
-
-		public Func<byte[], int, int, uint160> Hash160
-		{
-			get;
-			set;
-		} = Hashes.Hash160;
 
 		internal NetworkStringParser NetworkStringParser
 		{

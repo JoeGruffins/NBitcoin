@@ -8,6 +8,9 @@ namespace NBitcoin.BuilderExtensions
 {
 	public class OPTrueExtension : BuilderExtension
 	{
+		public OPTrueExtension(IHasher hasher) : base(hasher)
+		{
+		}
 
 		public override bool CanDeduceScriptPubKey(Script scriptSig)
 		{

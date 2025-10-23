@@ -205,15 +205,15 @@ namespace NBitcoin
 		}
 #endif
 
-		public ExtKey DeriveExtKey(string passphrase = null)
+		public ExtKey DeriveExtKey(IHasher hasher, string passphrase = null)
 		{
 #if HAS_SPAN
 			var arrayspan = DeriveSeed(passphrase).AsSpan();
-			var k = ExtKey.CreateFromSeed(arrayspan);
+			var k = ExtKey.CreateFromSeed(hasher, arrayspan);
 			arrayspan.Clear();
 #else
 			var array = DeriveSeed(passphrase);
-			var k = ExtKey.CreateFromSeed(array);
+			var k = ExtKey.CreateFromSeed(hasher, array);
 			Array.Clear(array, 0, array.Length);
 #endif
 			return k;

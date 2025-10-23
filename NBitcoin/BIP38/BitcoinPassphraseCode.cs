@@ -181,7 +181,7 @@ namespace NBitcoin
 				passfactor = Hashes.DoubleSHA256(prefactor.Concat(ownerEntropy).ToArray()).ToBytes();
 			}
 
-			var passpoint = new Key(passfactor, fCompressedIn: true).PubKey.ToBytes();
+			var passpoint = new Key(network.Hasher, passfactor, fCompressedIn: true).PubKey.ToBytes();
 
 			var bytes =
 				network.GetVersionBytes(Base58Type.PASSPHRASE_CODE, true)
@@ -226,14 +226,14 @@ namespace NBitcoin
 #if HAS_SPAN
 			if (!NBitcoinContext.Instance.TryCreatePubKey(Passpoint, out var eckey) || eckey is null)
 				throw new InvalidOperationException("Invalid Passpoint");
-			var pubKey = new PubKey(eckey.TweakMul(factorb), isCompressed);
+			var pubKey = new PubKey(eckey.TweakMul(factorb), isCompressed, Network.Hasher);
 #else
 			var curve = ECKey.Secp256k1;
 			var passpoint = curve.Curve.DecodePoint(Passpoint);
 			var pubPoint = passpoint.Multiply(new BigInteger(1, factorb));
 
 			//Use the resulting EC point as a public key
-			var pubKey = new PubKey(pubPoint.GetEncoded());
+			var pubKey = new PubKey(pubPoint.GetEncoded(), Network.Hasher);
 			//and hash it into a Bitcoin address using either compressed or uncompressed public key
 			//This is the generated Bitcoin address, call it generatedaddress.
 			pubKey = isCompressed ? pubKey.Compress() : pubKey.Decompress();
@@ -268,7 +268,7 @@ namespace NBitcoin
 			return new EncryptedKeyResult(encryptedSecret, generatedaddress, seedb, () =>
 			{
 				//ECMultiply factorb by G, call the result pointb. The result is 33 bytes.
-				var pointb = new Key(factorb).PubKey.ToBytes();
+				var pointb = new Key(Network.Hasher, factorb).PubKey.ToBytes();
 				//The first byte is 0x02 or 0x03. XOR it by (derivedhalf2[31] & 0x01), call the resulting byte pointbprefix.
 				var pointbprefix = (byte)(pointb[0] ^ (byte)(derived[63] & 0x01));
 				var pointbx = BitcoinEncryptedSecret.EncryptKey(pointb.Skip(1).ToArray(), derived);

@@ -23,14 +23,14 @@ namespace NBitcoin.Tests
 				var rpc = nodeBuilder.CreateNode().CreateRPCClient();
 				nodeBuilder.StartAll();
 				rpc.Generate(102);
-				var change = new Key();
-				var rootKey = new ExtKey();
+				var change = new Key(rpc.Network);
+				var rootKey = new ExtKey(rpc.Network);
 				var accountKeyPath = new KeyPath("86'/0'/0'");
 				var accountRootKeyPath = new RootedKeyPath(rootKey.GetPublicKey().GetHDFingerPrint(), accountKeyPath);
 				var accountKey = rootKey.Derive(accountKeyPath);
 				var key = accountKey.Derive(new KeyPath("0/0")).PrivateKey;
 				var address = key.PubKey.GetAddress(ScriptPubKeyType.TaprootBIP86, nodeBuilder.Network);
-				var destination = new Key();
+				var destination = new Key(rpc.Network);
 				var amount = new Money(1, MoneyUnit.BTC);
 				uint256 id = null;
 				Transaction tx = null;
@@ -206,7 +206,7 @@ namespace NBitcoin.Tests
 				rpc.Generate(102);
 
 				// Build the keys and addresses
-				var masterKeys = Enumerable.Range(0, 3).Select(_ => new ExtKey()).ToArray();
+				var masterKeys = Enumerable.Range(0, 3).Select(_ => new ExtKey(nodeBuilder.Network.Hasher)).ToArray();
 				var keyRedeemAddresses = Enumerable.Range(0, 4)
 									  .Select(i => masterKeys.Select(m => m.Derive(i, false)).ToArray())
 									  .Select(keys =>
@@ -217,7 +217,7 @@ namespace NBitcoin.Tests
 									  (
 										Keys: _.Keys,
 										Redeem: _.Redeem,
-										Address: _.Redeem.WitHash.ScriptPubKey.Hash.ScriptPubKey.GetDestinationAddress(nodeBuilder.Network)
+										Address: _.Redeem.WitHash.ScriptPubKey.Hash(nodeBuilder.Network.Hasher).ScriptPubKey.GetDestinationAddress(nodeBuilder.Network)
 									  ));
 
 
@@ -231,20 +231,20 @@ namespace NBitcoin.Tests
 				}).Select(t => t.Result).ToArray();
 
 
-				var destination = new Key();
+				var destination = new Key(nodeBuilder.Network.Hasher);
 				var amount = new Money(1, MoneyUnit.BTC);
 				var redeemScripts = keyRedeemAddresses.Select(kra => kra.Redeem).ToArray();
 				var privateKeys = keyRedeemAddresses.SelectMany(kra => kra.Keys).ToArray();
 
 
-				var builder = Network.Main.CreateTransactionBuilder();
+				var builder = nodeBuilder.Network.CreateTransactionBuilder();
 				var rate = new FeeRate(Money.Satoshis(1), 1);
 				var signedTx = builder
 					.AddCoins(scriptCoins)
 					.AddKeys(privateKeys)
 					.Send(destination, amount)
 					.SubtractFees()
-					.SetChange(new Key())
+					.SetChange(new Key(nodeBuilder.Network.Hasher))
 					.SendEstimatedFees(rate)
 					.BuildTransaction(true);
 
@@ -269,10 +269,10 @@ namespace NBitcoin.Tests
 				rpc.Generate(102);
 
 				// Build the keys and addresses
-				var masterKeys = Enumerable.Range(0, 3).Select(_ => new ExtKey()).ToArray();
+				var masterKeys = Enumerable.Range(0, 3).Select(_ => new ExtKey(nodeBuilder.Network.Hasher)).ToArray();
 				var keys = masterKeys.Select(mk => mk.Derive(0, false).PrivateKey).ToArray();
 				var redeem = PayToMultiSigTemplate.Instance.GenerateScriptPubKey(keys.Length, keys.Select(k => k.PubKey).ToArray());
-				var address = redeem.WitHash.ScriptPubKey.Hash.ScriptPubKey.GetDestinationAddress(nodeBuilder.Network);
+				var address = redeem.WitHash.ScriptPubKey.Hash(nodeBuilder.Network.Hasher).ScriptPubKey.GetDestinationAddress(nodeBuilder.Network);
 
 				var id = rpc.SendToAddress(address, Money.Coins(1));
 				var tx = rpc.GetRawTransaction(id);
@@ -282,18 +282,18 @@ namespace NBitcoin.Tests
 									.Single();
 
 
-				var destination = new Key();
+				var destination = new Key(nodeBuilder.Network.Hasher);
 				var amount = new Money(1, MoneyUnit.BTC);
 
 
-				var builder = Network.Main.CreateTransactionBuilder();
+				var builder = nodeBuilder.Network.CreateTransactionBuilder();
 				var rate = new FeeRate(Money.Satoshis(1), 1);
 				var partiallySignedTx = builder
 					.AddCoins(scriptCoin)
 					.AddKeys(keys[0])
 					.Send(destination, amount)
 					.SubtractFees()
-					.SetChange(new Key())
+					.SetChange(new Key(nodeBuilder.Network.Hasher))
 					.SendEstimatedFees(rate)
 					.BuildPSBT(true, version);
 				Assert.True(partiallySignedTx.Inputs.All(i => i.PartialSigs.Count == 1));
@@ -331,7 +331,7 @@ namespace NBitcoin.Tests
 				rpc.Generate(102);
 				uint hardenedFlag = 0U;
 			retry:
-				var masterKey = new ExtKey();
+				var masterKey = new ExtKey(nodeBuilder.Network.Hasher);
 				var accountKeyPath = new RootedKeyPath(masterKey, new KeyPath("49'/0'/0'"));
 				var accountKey = masterKey.Derive(accountKeyPath);
 				var addresses = Enumerable.Range(0, 5)
@@ -361,10 +361,10 @@ namespace NBitcoin.Tests
 				}).Select(t => t.Result).ToArray();
 
 
-				var destination = new Key();
+				var destination = new Key(nodeBuilder.Network.Hasher);
 				var amount = new Money(1, MoneyUnit.BTC);
 
-				var builder = Network.Main.CreateTransactionBuilder();
+				var builder = nodeBuilder.Network.CreateTransactionBuilder();
 
 				var fee = new Money(100_000L);
 				var partiallySignedTx = builder

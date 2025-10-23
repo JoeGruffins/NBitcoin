@@ -60,7 +60,7 @@ namespace NBitcoin.Tests
 			Normal = 3,
 			P2WPKH = 4
 		}
-		private static Coin RandomCoin(Key[] bobs, Money amount, CoinType type)
+		private static Coin RandomCoin(Network network, Key[] bobs, Money amount, CoinType type)
 		{
 			if (bobs.Length == 1)
 			{
@@ -70,9 +70,9 @@ namespace NBitcoin.Tests
 				if (type == CoinType.P2WPKH)
 					return new Coin(new uint256(RandomUtils.GetBytes(32)), 0, amount, bob.PubKey.WitHash.ScriptPubKey);
 				if (type == CoinType.P2SH)
-					return new Coin(new uint256(RandomUtils.GetBytes(32)), 0, amount, bob.PubKey.ScriptPubKey.Hash.ScriptPubKey).ToScriptCoin(bob.PubKey.ScriptPubKey);
+					return new Coin(new uint256(RandomUtils.GetBytes(32)), 0, amount, bob.PubKey.ScriptPubKey.Hash(network.Hasher).ScriptPubKey).ToScriptCoin(bob.PubKey.ScriptPubKey);
 				if (type == CoinType.SegwitP2SH)
-					return new Coin(new uint256(RandomUtils.GetBytes(32)), 0, amount, bob.PubKey.ScriptPubKey.WitHash.ScriptPubKey.Hash.ScriptPubKey).ToScriptCoin(bob.PubKey.ScriptPubKey);
+					return new Coin(new uint256(RandomUtils.GetBytes(32)), 0, amount, bob.PubKey.ScriptPubKey.WitHash.ScriptPubKey.Hash(network.Hasher).ScriptPubKey).ToScriptCoin(bob.PubKey.ScriptPubKey);
 				if (type == CoinType.Segwit)
 					return new Coin(new uint256(RandomUtils.GetBytes(32)), 0, amount, bob.PubKey.ScriptPubKey.WitHash.ScriptPubKey).ToScriptCoin(bob.PubKey.ScriptPubKey);
 				throw new NotSupportedException();
@@ -85,9 +85,9 @@ namespace NBitcoin.Tests
 				}
 				var script = PayToMultiSigTemplate.Instance.GenerateScriptPubKey((int)(1 + (RandomUtils.GetUInt32() % bobs.Length)), bobs.Select(b => b.PubKey).ToArray());
 				if (type == CoinType.P2SH)
-					return new Coin(new uint256(RandomUtils.GetBytes(32)), 0, amount, script.Hash.ScriptPubKey).ToScriptCoin(script);
+					return new Coin(new uint256(RandomUtils.GetBytes(32)), 0, amount, script.Hash(network.Hasher).ScriptPubKey).ToScriptCoin(script);
 				if (type == CoinType.SegwitP2SH)
-					return new Coin(new uint256(RandomUtils.GetBytes(32)), 0, amount, script.WitHash.ScriptPubKey.Hash.ScriptPubKey).ToScriptCoin(script);
+					return new Coin(new uint256(RandomUtils.GetBytes(32)), 0, amount, script.WitHash.ScriptPubKey.Hash(network.Hasher).ScriptPubKey).ToScriptCoin(script);
 				if (type == CoinType.Segwit)
 					return new Coin(new uint256(RandomUtils.GetBytes(32)), 0, amount, script.WitHash.ScriptPubKey).ToScriptCoin(script);
 				throw new NotSupportedException();
@@ -108,11 +108,11 @@ namespace NBitcoin.Tests
 		[Trait("UnitTest", "UnitTest")]
 		public void CanBuildTransactionWithSubstractFeeAndSendEstimatedFees()
 		{
-			var signer = new Key();
+			var signer = new Key(Network.Hasher);
 			var builder = Network.CreateTransactionBuilder();
 			builder.AddKeys(signer);
 			builder.AddCoins(RandomCoin(signer, Money.Coins(1)));
-			builder.Send(new Key(), Money.Coins(1));
+			builder.Send(new Key(Network.Hasher), Money.Coins(1));
 			builder.SubtractFees();
 			builder.SendEstimatedFees(new FeeRate(Money.Satoshis(100), 1));
 			var v = VerifyFees(builder, new FeeRate(Money.Satoshis(100), 1));
@@ -125,14 +125,14 @@ namespace NBitcoin.Tests
 				for (int ii = 0; ii < 1 + RandomUtils.GetUInt32() % 10; ii++)
 				{
 					var signersCount = 1 + (int)(RandomUtils.GetUInt32() % 6);
-					var signers = Enumerable.Range(0, signersCount).Select(_ => new Key()).ToArray();
-					builder.AddCoins(RandomCoin(signers, Money.Coins(1), (CoinType)(RandomUtils.GetUInt32() % 5)));
+					var signers = Enumerable.Range(0, signersCount).Select(_ => new Key(Network.Hasher)).ToArray();
+					builder.AddCoins(RandomCoin(Network, signers, Money.Coins(1), (CoinType)(RandomUtils.GetUInt32() % 5)));
 					builder.AddKeys(signers);
-					builder.Send(new Key(), Money.Coins(0.9m));
+					builder.Send(new Key(Network.Hasher), Money.Coins(0.9m));
 
 				}
 				builder.SubtractFees();
-				builder.SetChange(new Key());
+				builder.SetChange(new Key(Network.Hasher));
 				builder.SendEstimatedFees(builder.StandardTransactionPolicy.MinRelayTxFee);
 				VerifyFees(builder);
 			}
@@ -158,9 +158,9 @@ namespace NBitcoin.Tests
 		[Trait("UnitTest", "UnitTest")]
 		public void TwoGroupsCanSendToSameDestination()
 		{
-			var alice = new Key();
-			var carol = new Key();
-			var bob = new Key();
+			var alice = new Key(Network.Hasher);
+			var carol = new Key(Network.Hasher);
+			var bob = new Key(Network.Hasher);
 
 			var builder = Network.CreateTransactionBuilder();
 			builder.StandardTransactionPolicy.CheckFee = false;

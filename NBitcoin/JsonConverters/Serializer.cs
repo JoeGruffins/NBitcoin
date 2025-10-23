@@ -19,7 +19,8 @@ namespace NBitcoin.JsonConverters
 		static void RegisterFrontConverters(JsonSerializerSettings settings, Network network = null)
 		{
 			settings.Converters.Add(new MoneyJsonConverter());
-			settings.Converters.Add(new KeyJsonConverter());
+			if (network != null)
+				settings.Converters.Add(new KeyJsonConverter(network));
 			if (network != null)
 				settings.Converters.Add(new CoinJsonConverter(network));
 			settings.Converters.Add(new ScriptJsonConverter());

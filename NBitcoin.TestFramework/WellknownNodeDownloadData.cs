@@ -2430,6 +2430,7 @@ namespace NBitcoin.Tests
 					Executable = "decred-darwin-arm64-v2.0.6/dcrwallet",
 					Hash = "28121f1a6233c940721279679abacbdbdb260d40716f08b88d21d08fc23efb2f"
 				},
+				NodeRunner = new DecredNodeRunner(),
 				SupportCookieFile = false,
 			};
 		}

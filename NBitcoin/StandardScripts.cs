@@ -37,13 +37,13 @@ namespace NBitcoin
 		{
 			return _StandardTemplates.Any(template => template.CheckScriptPubKey(scriptPubKey));
 		}
-		private static bool IsStandardScriptSig(Script scriptSig, Script scriptPubKey)
+		private static bool IsStandardScriptSig(Script scriptSig, Script scriptPubKey, Network network)
 		{
 			var template = GetTemplateFromScriptPubKey(scriptPubKey);
 			if (template == null)
 				return false;
 
-			return template.CheckScriptSig(scriptSig, scriptPubKey);
+			return template.CheckScriptSig(network.Hasher, scriptSig, scriptPubKey);
 		}
 	}
 }

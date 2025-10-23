@@ -5,12 +5,12 @@ namespace NBitcoin.Tests.Helpers
 {
 	internal static class PrimitiveUtils
 	{
-		internal static Coin RandomCoin(Money amount, Script scriptPubKey, bool p2sh)
+		internal static Coin RandomCoin(Money amount, Script scriptPubKey, Network network, bool p2sh)
 		{
 			var outpoint = RandOutpoint();
-			if(!p2sh)
+			if (!p2sh)
 				return new Coin(outpoint, new TxOut(amount, scriptPubKey));
-			return new ScriptCoin(outpoint, new TxOut(amount, scriptPubKey.Hash), scriptPubKey);
+			return new ScriptCoin(outpoint, new TxOut(amount, scriptPubKey.Hash(network.Hasher)), scriptPubKey);
 		}
 		internal static Coin RandomCoin(Money amount, Key receiver)
 		{
@@ -22,12 +22,12 @@ namespace NBitcoin.Tests.Helpers
 			return new Coin(outpoint, new TxOut(amount, receiver));
 		}
 
-		internal static List<ScriptCoin> GetRandomCoinsForAllScriptType(Money amount, Script scriptPubKey)
+		internal static List<ScriptCoin> GetRandomCoinsForAllScriptType(Money amount, Script scriptPubKey, Network network)
 		{
 			return new List<ScriptCoin> {
-				RandomCoin(Money.Coins(0.5m), scriptPubKey, true) as ScriptCoin,
+				RandomCoin(Money.Coins(0.5m), scriptPubKey, network, true) as ScriptCoin,
 				new ScriptCoin(RandomCoin(Money.Coins(0.5m), scriptPubKey.WitHash), scriptPubKey),
-				new ScriptCoin(RandomCoin(Money.Coins(0.5m), scriptPubKey.WitHash.ScriptPubKey.Hash), scriptPubKey)
+				new ScriptCoin(RandomCoin(Money.Coins(0.5m), scriptPubKey.WitHash.ScriptPubKey.Hash(network.Hasher)), scriptPubKey)
 			};
 		}
 

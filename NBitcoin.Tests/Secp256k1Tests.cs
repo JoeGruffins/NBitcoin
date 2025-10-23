@@ -4512,8 +4512,8 @@ namespace NBitcoin.Tests
 		public void musig_key_sort_vectors()
 		{
 			var root = JObject.Parse(File.ReadAllText("data/musig/key_sort_vectors.json"));
-			var pubkeys = GetArray<string>(root["pubkeys"]).Select(p => new PubKey(Encoders.Hex.DecodeData(p))).ToArray();
-			var sorted_pubkeys = GetArray<string>(root["sorted_pubkeys"]).Select(p => new PubKey(Encoders.Hex.DecodeData(p))).ToArray();
+			var pubkeys = GetArray<string>(root["pubkeys"]).Select(p => new PubKey(Encoders.Hex.DecodeData(p), Network.Main)).ToArray();
+			var sorted_pubkeys = GetArray<string>(root["sorted_pubkeys"]).Select(p => new PubKey(Encoders.Hex.DecodeData(p), Network.Main)).ToArray();
 			Array.Sort(pubkeys);
 			AssertEx.CollectionEquals(pubkeys, sorted_pubkeys);
 			Array.Sort(pubkeys, PubKeyComparer.Instance);

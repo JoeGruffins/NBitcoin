@@ -40,7 +40,7 @@ namespace NBitcoin.Tests
 		{
 			var mnemonic = new Mnemonic("turtle front uncle idea crush write shrug there lottery flower risk shell", Wordlist.English);
 			var mnemonic2 = new Mnemonic("turtle    front	uncle　 idea crush write shrug there lottery flower risk shell", Wordlist.English);
-			Assert.Equal(mnemonic.DeriveExtKey().ScriptPubKey, mnemonic2.DeriveExtKey().ScriptPubKey);
+			Assert.Equal(mnemonic.DeriveExtKey(Network.Main.Hasher).ScriptPubKey, mnemonic2.DeriveExtKey(Network.Main.Hasher).ScriptPubKey);
 			Assert.Equal(mnemonic.ToString(), mnemonic2.ToString());
 		}
 
@@ -65,7 +65,7 @@ namespace NBitcoin.Tests
 			foreach (var test in tests.Children().OfType<JObject>())
 			{
 				var mnemonic = new Mnemonic(test["mnemonic"].Value<string>(), wordlist);
-				var actual = mnemonic.DeriveExtKey(test["passphrase"].Value<string>()).GetWif(Network.Main);
+				var actual = mnemonic.DeriveExtKey(Network.Main.Hasher, test["passphrase"].Value<string>()).GetWif(Network.Main);
 				var expected = new BitcoinExtKey(test["bip32_xprv"].Value<string>(), Network.Main);
 				Assert.Equal(actual, expected);
 			}
@@ -136,11 +136,11 @@ namespace NBitcoin.Tests
 				Assert.True(mnemonic.IsValidChecksum);
 				Assert.Equal(seed, Encoders.Hex.EncodeData(mnemonic.DeriveSeed(passphrase)));
 				var bip32 = unitTest["bip32_xprv"].ToString();
-				var bip32Actual = mnemonic.DeriveExtKey(passphrase).ToString(Network.Main);
+				var bip32Actual = mnemonic.DeriveExtKey(Network.Main.Hasher, passphrase).ToString(Network.Main);
 				Assert.Equal(bip32, bip32Actual.ToString());
 				mnemonic = new Mnemonic(Wordlist.Japanese, entropy);
 				Assert.True(mnemonic.IsValidChecksum);
-				bip32Actual = mnemonic.DeriveExtKey(passphrase).ToString(Network.Main);
+				bip32Actual = mnemonic.DeriveExtKey(Network.Main.Hasher, passphrase).ToString(Network.Main);
 				Assert.Equal(bip32, bip32Actual.ToString());
 			}
 		}

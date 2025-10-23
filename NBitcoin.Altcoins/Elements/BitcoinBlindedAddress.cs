@@ -17,39 +17,39 @@ namespace NBitcoin.Altcoins.Elements
 			var blech32 = network.GetBech32Encoder(Bech32Type.BLINDED_ADDRESS, false);
 
 			if (blech32 != null && NBitcoin.DataEncoders.Encoders.ASCII
-				    .DecodeData(base58.Substring(0, blech32.HumanReadablePart.Length))
-				    .SequenceEqual(blech32.HumanReadablePart))
+					.DecodeData(base58.Substring(0, blech32.HumanReadablePart.Length))
+					.SequenceEqual(blech32.HumanReadablePart))
 			{
-					var vchData = blech32.Decode(base58, out var witnessVerion);
-					bool p2pkh = !(version == null || !StartWith(prefix.Length, vchData, version));
-					var script = false;
-					var blinding = vchData.SafeSubarray(0, 33);
-					byte[] hash;
-					if (vchData.Length == 53)
-					{
+				var vchData = blech32.Decode(base58, out var witnessVerion);
+				bool p2pkh = !(version == null || !StartWith(prefix.Length, vchData, version));
+				var script = false;
+				var blinding = vchData.SafeSubarray(0, 33);
+				byte[] hash;
+				if (vchData.Length == 53)
+				{
 
-						hash = vchData.SafeSubarray(version.Length + 32, 20);
-					}
-					else
+					hash = vchData.SafeSubarray(version.Length + 32, 20);
+				}
+				else
+				{
+					hash = vchData.SafeSubarray(version.Length + 32, vchData.Length - version.Length - 32);
+					script = true;
+				}
+				if (PubKey.TryCreatePubKey(blinding, network.Hasher, out _BlindingKey))
+				{
+					if (witnessVerion == 0)
 					{
-						hash = vchData.SafeSubarray(version.Length + 32, vchData.Length - version.Length - 32);
-						script = true;
+						_UnblindedAddress = script ? (BitcoinAddress)new BitcoinWitScriptAddress(new WitScriptId(hash), network) : new BitcoinWitPubKeyAddress(new WitKeyId(hash), network);
 					}
-					if (PubKey.TryCreatePubKey(blinding, out _BlindingKey))
-					{
-						if (witnessVerion == 0)
-						{
-							_UnblindedAddress =script?  (BitcoinAddress) new BitcoinWitScriptAddress(new WitScriptId(hash), network):  new BitcoinWitPubKeyAddress(new WitKeyId(hash), network);
-						}
-						else if (witnessVerion > 16 || hash.Length < 2 || hash.Length > 40)
-						{
-							throw new FormatException("Invalid Bitcoin Blinded Address");
-						}
-					}
-					else
+					else if (witnessVerion > 16 || hash.Length < 2 || hash.Length > 40)
 					{
 						throw new FormatException("Invalid Bitcoin Blinded Address");
 					}
+				}
+				else
+				{
+					throw new FormatException("Invalid Bitcoin Blinded Address");
+				}
 
 			}
 			else
@@ -70,12 +70,12 @@ namespace NBitcoin.Altcoins.Elements
 				if (vchData.Length != prefix.Length + version.Length + 33 + 20)
 					throw new FormatException("Invalid Bitcoin Blinded Address");
 				var blinding = vchData.SafeSubarray(prefix.Length + version.Length, 33);
-				if (PubKey.TryCreatePubKey(blinding, out _BlindingKey))
+				if (PubKey.TryCreatePubKey(blinding, network.Hasher, out _BlindingKey))
 				{
 					var hash = vchData.SafeSubarray(prefix.Length + version.Length + 33, 20);
 					_UnblindedAddress =
 						p2pkh
-							? (BitcoinAddress) new BitcoinPubKeyAddress(new KeyId(hash), network)
+							? (BitcoinAddress)new BitcoinPubKeyAddress(new KeyId(hash), network)
 							: new BitcoinScriptAddress(new ScriptId(hash), network);
 				}
 				else
@@ -110,13 +110,13 @@ namespace NBitcoin.Altcoins.Elements
 				switch (address)
 				{
 					case BitcoinWitPubKeyAddress _:
-						bech32Encoder= address.Network.GetBech32Encoder(Bech32Type.WITNESS_PUBKEY_ADDRESS, true);
+						bech32Encoder = address.Network.GetBech32Encoder(Bech32Type.WITNESS_PUBKEY_ADDRESS, true);
 						break;
 					case BitcoinWitScriptAddress _:
-						bech32Encoder= address.Network.GetBech32Encoder(Bech32Type.WITNESS_SCRIPT_ADDRESS, true);
+						bech32Encoder = address.Network.GetBech32Encoder(Bech32Type.WITNESS_SCRIPT_ADDRESS, true);
 						break;
 					default:
-							throw new ArgumentException($"no bech32 encoder for {address.GetType()} found");
+						throw new ArgumentException($"no bech32 encoder for {address.GetType()} found");
 				}
 
 				witProg = bech32Encoder.Decode(address.ToString(), out witVer);

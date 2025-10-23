@@ -58,7 +58,7 @@ namespace NBitcoin.Scripting.Parser
 
 			try
 			{
-				return parser(new ScriptInput(input), network);
+				return parser(new ScriptInput(input, network.Hasher), network);
 			}
 			// Catching exception here is bit ugly, but converting `Script` to `ScriptToken` is itself unsafe
 			// so this is good for assuring purity of this method.

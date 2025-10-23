@@ -18,7 +18,7 @@ namespace NBitcoin.Tests
 		[Trait("UnitTest", "UnitTest")]
 		public void CanSerializeInJson()
 		{
-			Key k = new Key();
+			Key k = new Key(Network.Main.Hasher);
 			CanSerializeInJsonCore(DateTimeOffset.UtcNow);
 			CanSerializeInJsonCore(new byte[] { 1, 2, 3 });
 			CanSerializeInJsonCore(k);
@@ -29,10 +29,10 @@ namespace NBitcoin.Tests
 			CanSerializeInJsonCore(Network.Main);
 			CanSerializeInJsonCore(new uint256(RandomUtils.GetBytes(32)));
 			CanSerializeInJsonCore(new uint160(RandomUtils.GetBytes(20)));
-			CanSerializeInJsonCore(new AssetId(k.PubKey));
+			CanSerializeInJsonCore(new AssetId(k.PubKey, Network.Main.Hasher));
 			CanSerializeInJsonCore(k.PubKey.ScriptPubKey);
-			CanSerializeInJsonCore(new Key().PubKey.WitHash.GetAddress(Network.Main), Network.Main);
-			CanSerializeInJsonCore(new Key().PubKey.WitHash.ScriptPubKey.WitHash.GetAddress(Network.Main), Network.Main);
+			CanSerializeInJsonCore(new Key(Network.Main.Hasher).PubKey.WitHash.GetAddress(Network.Main), Network.Main);
+			CanSerializeInJsonCore(new Key(Network.Main.Hasher).PubKey.WitHash.ScriptPubKey.WitHash.GetAddress(Network.Main), Network.Main);
 			var sig = k.Sign(new uint256(RandomUtils.GetBytes(32)));
 			CanSerializeInJsonCore(sig);
 			CanSerializeInJsonCore(DateTimeOffset.UtcNow);
@@ -92,8 +92,8 @@ namespace NBitcoin.Tests
 			CanSerializeInJsonCore(expectedOutpoint, out str);
 			Assert.Equal("\"44f69ca74088d6d88e30156da85aae54543a87f67cdfdabbe9b53a92d6d7027c01000000\"", str);
 
-			var key = new Key(Encoders.Hex.DecodeData("ce71d1851c03cc6c0331020391113acbf6843b32065e53e4308984537630eee1"));
-			var pubkey = new PubKey(Encoders.Hex.DecodeData("02eae22800451728c177244a79be8ff22e92d08ec3a5cdd0b6d4b54fa7a90bb44c"));
+			var key = new Key(Network.Main.Hasher, Encoders.Hex.DecodeData("ce71d1851c03cc6c0331020391113acbf6843b32065e53e4308984537630eee1"));
+			var pubkey = new PubKey(Encoders.Hex.DecodeData("02eae22800451728c177244a79be8ff22e92d08ec3a5cdd0b6d4b54fa7a90bb44c"), Network.Main.Hasher);
 			var internalKey = new TaprootInternalPubKey(Encoders.Hex.DecodeData("eae22800451728c177244a79be8ff22e92d08ec3a5cdd0b6d4b54fa7a90bb44c"));
 			var outputKey = new TaprootPubKey(Encoders.Hex.DecodeData("6bf657f19f5917eb6197ae123caf435611a1d35ba23a2d3394e579208d0f18d4"));
 			CanSerializeInJsonCore(key, out str);

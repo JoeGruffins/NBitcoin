@@ -104,6 +104,9 @@ namespace NBitcoin.Tests
 		{
 			get; set;
 		}
+
+		public NodeRunner NodeRunner { get; set; }
+
 		public string RegtestFolderName { get; set; }
 
 		public bool CreateWallet
@@ -130,15 +133,14 @@ namespace NBitcoin.Tests
 	}
 	public class NodeBuilder : IDisposable
 	{
-		public static NodeBuilder Create(NodeDownloadData downloadData, Network network = null, Func<Network, bool> useNetwork = null, [CallerMemberNameAttribute] string caller = null, Func<NodeRunner> customNodeRunner = null, bool showNodeConsole = false)
+		public static NodeBuilder Create(NodeDownloadData downloadData, Network network = null, [CallerMemberNameAttribute] string caller = null, bool showNodeConsole = false)
 		{
 			network = network ?? Network.RegTest;
-			if (useNetwork != null && useNetwork(network) == false) return null;
 			var isFilePath = downloadData.Version.Length >= 2 && downloadData.Version[1] == ':';
 			var path = isFilePath ? downloadData.Version : EnsureDownloaded(downloadData);
 			if (!Directory.Exists(caller))
 				Directory.CreateDirectory(caller);
-			return new NodeBuilder(caller, path) { Network = network, NodeImplementation = downloadData, CustomNodeRunner = customNodeRunner, ShowNodeConsole = showNodeConsole };
+			return new NodeBuilder(caller, path) { Network = network, NodeImplementation = downloadData, ShowNodeConsole = showNodeConsole };
 		}
 
 		public static string EnsureDownloaded(NodeDownloadData downloadData)
@@ -219,7 +221,6 @@ namespace NBitcoin.Tests
 			set;
 		} = Network.RegTest;
 		public NodeDownloadData NodeImplementation { get; private set; }
-		public Func<NodeRunner> CustomNodeRunner { get; private set; }
 		public RPCWalletType? RPCWalletType { get; set; }
 		public bool CreateWallet { get; set; } = true;
 
@@ -261,6 +262,7 @@ namespace NBitcoin.Tests
 	public class CoreNode
 	{
 		private readonly NodeBuilder _Builder;
+		private NodeRunner _NodeRunner => _Builder.NodeImplementation.NodeRunner;
 		private string _Folder;
 		public string Folder
 		{
@@ -297,8 +299,6 @@ namespace NBitcoin.Tests
 			}
 		}
 
-		private readonly NodeRunner _NodeRunner;
-
 		public CoreNode(string folder, NodeBuilder builder)
 		{
 			this._Builder = builder;
@@ -316,9 +316,8 @@ namespace NBitcoin.Tests
 			// running their nodes. They may require more than 2 ports, for
 			// example. And they'd usually require a (slightly) different
 			// cleanup proceedure than the one doen below.
-			if (builder.CustomNodeRunner != null)
+			if (this._NodeRunner != null)
 			{
-				this._NodeRunner = builder.CustomNodeRunner();
 				if (_NodeRunner.PortsNeeded > 2)
 					ports = new int[_NodeRunner.PortsNeeded];
 				if (builder.CleanBeforeStartingNode)

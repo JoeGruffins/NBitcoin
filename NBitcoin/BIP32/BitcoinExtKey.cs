@@ -49,7 +49,7 @@ namespace NBitcoin
 
 		public BitcoinExtKey(BitcoinExtPubKey bitcoinExtPubKey, Key key)
 			: base(new ExtKey(bitcoinExtPubKey.ExtPubKey, key).ToBytes(), bitcoinExtPubKey.Network)
-		{}
+		{ }
 
 		/// <summary>
 		/// Gets whether the data is the correct expected length.
@@ -73,7 +73,7 @@ namespace NBitcoin
 			{
 				if (_Key == null)
 				{
-					_Key = ExtKey.CreateFromBytes(vchData);
+					_Key = ExtKey.CreateFromBytes(this.Network.Hasher, vchData);
 				}
 				return _Key;
 			}
@@ -190,7 +190,7 @@ namespace NBitcoin
 			{
 				if (_PubKey == null)
 				{
-					_PubKey = new ExtPubKey(vchData);
+					_PubKey = new ExtPubKey(vchData, Network.Hasher);
 				}
 				return _PubKey;
 			}
@@ -206,7 +206,7 @@ namespace NBitcoin
 					return false;
 				try
 				{
-					_PubKey = new ExtPubKey(vchData);
+					_PubKey = new ExtPubKey(vchData, Network.Hasher);
 					return true;
 				}
 				catch { return false; }

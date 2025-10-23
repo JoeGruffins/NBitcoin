@@ -1,4 +1,6 @@
-﻿using NBitcoin.Protocol;
+﻿using NBitcoin.Crypto;
+using NBitcoin.Protocol;
+using NBitcoin.RPC;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -6,7 +8,12 @@ using System.Reflection;
 
 namespace NBitcoin
 {
-	public class ConsensusFactory
+	public interface IHasher
+	{
+		uint160 Hash160(byte[] data, int offset, int count);
+	}
+
+	public class ConsensusFactory : IHasher
 	{
 		static readonly TypeInfo BlockHeaderType = typeof(BlockHeader).GetTypeInfo();
 		static readonly TypeInfo BlockType = typeof(Block).GetTypeInfo();
@@ -125,10 +132,17 @@ namespace NBitcoin
 			};
 		}
 
+		// Altcoins can override to modify some aspects of an rpc request or
+		// return a pre-defined response.
+		public virtual RPCResponse RPCRequestHook(ref RPCRequest request)
+		{
+			return null;
+		}
+
 		// Altcoins can override to provide a unique data parsing. If this
 		// method returns false, the default parsing in RPCClient >
 		// ParseVerboseBlock will be used.
-		public virtual bool ParseGetBlockRPCRespose(JObject json, bool withFullTx, out BlockHeader blockHeader, out Block block, out List<uint256> txids)
+		public virtual bool ParseGetBlockRPCResponse(JObject json, bool withFullTx, out BlockHeader blockHeader, out Block block, out List<uint256> txids)
 		{
 			blockHeader = null;
 			block = null;
@@ -192,6 +206,11 @@ namespace NBitcoin
 		internal TransactionBuilder CreateTransactionBuilderCore2(Network network)
 		{
 			return CreateTransactionBuilderCore(network);
+		}
+
+		public virtual uint160 Hash160(byte[] data, int offset, int count)
+		{
+			return Hashes.Hash160(data, offset, count);
 		}
 	}
 }

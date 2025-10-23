@@ -35,7 +35,9 @@ namespace NBitcoin.Tests.Generators
 
 		public static Arbitrary<uint256> UInt256Arb() =>
 			Arb.From(Hash256());
-		public static Gen<Key> PrivateKey() => Gen.Fresh(() => new Key());
+		public static Gen<Key> PrivateKey() =>
+			from network in ChainParamsGenerator.NetworkGen()
+			select new Key(network.Hasher);
 
 		public static Gen<List<Key>> PrivateKeys(int n) =>
 			from pk in Gen.ListOf<Key>(n, PrivateKey())
@@ -108,7 +110,9 @@ namespace NBitcoin.Tests.Generators
 			});
 		#endregion
 
-		public static Gen<ExtKey> ExtKey() => Gen.Fresh(() => new ExtKey());
+		public static Gen<ExtKey> ExtKey() =>
+			from network in ChainParamsGenerator.NetworkGen()
+			select new ExtKey(network.Hasher);
 
 		public static Gen<KeyPath> KeyPath() =>
 			from raw in Gen.NonEmptyListOf(PrimitiveGenerator.RandomBytes(4))

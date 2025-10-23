@@ -865,14 +865,14 @@ namespace NBitcoin
 
 		private void InitExtensions()
 		{
-			Extensions.Add(new P2PKHBuilderExtension());
-			Extensions.Add(new P2MultiSigBuilderExtension());
-			Extensions.Add(new P2PKBuilderExtension());
-			Extensions.Add(new OPTrueExtension());
+			Extensions.Add(new P2PKHBuilderExtension(Network.Hasher));
+			Extensions.Add(new P2MultiSigBuilderExtension(Network.Hasher));
+			Extensions.Add(new P2PKBuilderExtension(Network.Hasher));
+			Extensions.Add(new OPTrueExtension(Network.Hasher));
 #if HAS_SPAN
 			if (Network.Consensus.SupportTaproot)
 			{
-				Extensions.Add(new TaprootKeySpendExtension());
+				Extensions.Add(new TaprootKeySpendExtension(Network.Hasher));
 			}
 #endif
 		}
@@ -1734,7 +1734,7 @@ namespace NBitcoin
 			int totalRepass = 5;
 			DoShuffleGroups();
 			TransactionBuildingContext ctx = new TransactionBuildingContext(this);
-			retry:
+		retry:
 			ctx.Transaction.LockTime = _LockTime;
 			if (_Version is uint v)
 				ctx.Transaction.Version = v;
@@ -2134,7 +2134,7 @@ namespace NBitcoin
 						redeem = PayToWitScriptHashTemplate.Instance.ExtractWitScriptParameters(txIn.WitScript, (WitScriptId)hash);
 					if (hash is ScriptId)
 					{
-						var parameters = PayToScriptHashTemplate.Instance.ExtractScriptSigParameters(txIn.ScriptSig, (ScriptId)hash);
+						var parameters = PayToScriptHashTemplate.Instance.ExtractScriptSigParameters(txIn.ScriptSig, (ScriptId)hash, Network.Hasher);
 						if (parameters != null)
 						{
 							redeem = parameters.RedeemScript;
@@ -2288,7 +2288,6 @@ namespace NBitcoin
 		{
 			if (validator == null)
 				throw new ArgumentNullException(nameof(validator));
-			validator.Hash160 = this.Network.Hash160;
 			List<TransactionPolicyError> exceptions = new List<TransactionPolicyError>();
 			var policyErrors = MinerTransactionPolicy.Instance.Check(validator);
 			exceptions.AddRange(policyErrors);
@@ -2652,9 +2651,8 @@ namespace NBitcoin
 		{
 			foreach (var redeem in knownRedeems)
 			{
-				redeem.Hash160 = Network.Hash160;
-				_ScriptPubKeyToRedeem.AddOrReplace(redeem.WitHash.ScriptPubKey.Hash.ScriptPubKey, redeem); //Might be P2SH(PWSH)
-				_ScriptPubKeyToRedeem.AddOrReplace(redeem.Hash.ScriptPubKey, redeem); //Might be P2SH
+				_ScriptPubKeyToRedeem.AddOrReplace(redeem.WitHash.ScriptPubKey.Hash(Network.Hasher).ScriptPubKey, redeem); //Might be P2SH(PWSH)
+				_ScriptPubKeyToRedeem.AddOrReplace(redeem.Hash(Network.Hasher).ScriptPubKey, redeem); //Might be P2SH
 				_ScriptPubKeyToRedeem.AddOrReplace(redeem.WitHash.ScriptPubKey, redeem); //Might be PWSH
 			}
 			return this;
@@ -2726,11 +2724,10 @@ namespace NBitcoin
 
 		private Script? DeduceScriptPubKey(Script scriptSig)
 		{
-			var p2sh = PayToScriptHashTemplate.Instance.ExtractScriptSigParameters(scriptSig);
+			var p2sh = PayToScriptHashTemplate.Instance.ExtractScriptSigParameters(scriptSig, Network.Hasher);
 			if (p2sh != null && p2sh.RedeemScript != null)
 			{
-				p2sh.RedeemScript.Hash160 = Network.Hash160;
-				return p2sh.RedeemScript.Hash.ScriptPubKey;
+				return p2sh.RedeemScript.Hash(Network.Hasher).ScriptPubKey;
 			}
 			foreach (var extension in Extensions)
 			{

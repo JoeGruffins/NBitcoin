@@ -47,7 +47,7 @@ namespace NBitcoin
 				var pkbytes = kv.Key.Skip(1).ToArray();
 				if (pkbytes.Length == 33)
 				{
-					var pubkey = new PubKey(pkbytes);
+					var pubkey = new PubKey(pkbytes, parent.Network.Hasher);
 					if (partial_sigs.ContainsKey(pubkey))
 						throw new FormatException("Invalid PSBTInput. Duplicate key for partial_sigs");
 					partial_sigs.Add(pubkey, new TransactionSignature(kv.Value));
@@ -83,7 +83,7 @@ namespace NBitcoin
 			}
 			foreach (var kv in map.RemoveAll<byte[]>(PSBTConstants.PSBT_IN_BIP32_DERIVATION))
 			{
-				var pubkey2 = new PubKey(kv.Key.Skip(1).ToArray());
+				var pubkey2 = new PubKey(kv.Key.Skip(1).ToArray(), parent.Network.Hasher);
 				if (hd_keypaths.ContainsKey(pubkey2))
 					throw new FormatException("Invalid PSBTInput. Duplicate key for hd_keypaths");
 				var masterFingerPrint = new HDFingerprint(kv.Value.Take(4).ToArray());
@@ -233,7 +233,7 @@ namespace NBitcoin
 					// Let's try to be smart by finding the redeemScript in the global tx
 					if (Parent.Settings.IsSmart && redeem_script == null && FinalScriptSig is not null)
 					{
-						var redeemScript = PayToScriptHashTemplate.Instance.ExtractScriptSigParameters(FinalScriptSig, coin.TxOut.ScriptPubKey)?.RedeemScript;
+						var redeemScript = PayToScriptHashTemplate.Instance.ExtractScriptSigParameters(FinalScriptSig, coin.TxOut.ScriptPubKey, Parent.Network.Hasher)?.RedeemScript;
 						if (redeemScript != null)
 						{
 							redeem_script = redeemScript;
@@ -345,14 +345,14 @@ namespace NBitcoin
 			if (PayToMultiSigTemplate.Instance.CheckScriptPubKey(redeem))
 			{
 				var sigPushes = new List<Op> { OpcodeType.OP_0 };
-				foreach (var pk in redeem.GetAllPubKeys())
+				foreach (var pk in redeem.GetAllPubKeys(this.Parent.Network))
 				{
 					if (!partial_sigs.TryGetValue(pk, out var sigPair))
 						continue;
 					sigPushes.Add(Op.GetPushOp(sigPair.ToBytes()));
 				}
 				// check sig is more than m in case of p2multisig.
-				var multiSigParam = PayToMultiSigTemplate.Instance.ExtractScriptPubKeyParameters(redeem);
+				var multiSigParam = PayToMultiSigTemplate.Instance.ExtractScriptPubKeyParameters(redeem, this.Parent.Network.Hasher);
 				var numSigs = sigPushes.Count - 1;
 				if (multiSigParam != null && numSigs < multiSigParam.SignatureCount)
 					throw new InvalidOperationException("Not enough signatures to finalize.");
@@ -391,7 +391,7 @@ namespace NBitcoin
 			var scriptId = PayToScriptHashTemplate.Instance.ExtractScriptPubKeyParameters(coin.ScriptPubKey);
 			if (scriptId is null)
 				return null;
-			return PayToScriptHashTemplate.Instance.ExtractScriptSigParameters(FinalScriptSig, scriptId)?.RedeemScript;
+			return PayToScriptHashTemplate.Instance.ExtractScriptSigParameters(FinalScriptSig, scriptId, Parent.Network.Hasher)?.RedeemScript;
 		}
 
 		internal Script? GetWitnessScript()
@@ -414,7 +414,7 @@ namespace NBitcoin
 			var scriptId = PayToScriptHashTemplate.Instance.ExtractScriptPubKeyParameters(coin.ScriptPubKey);
 			if (scriptId is null)
 				return null;
-			var p2shRedeem = PayToScriptHashTemplate.Instance.ExtractScriptSigParameters(FinalScriptSig, scriptId)
+			var p2shRedeem = PayToScriptHashTemplate.Instance.ExtractScriptSigParameters(FinalScriptSig, scriptId, Parent.Network.Hasher)
 				?.RedeemScript;
 			if (p2shRedeem is null)
 				return null;
@@ -465,7 +465,7 @@ namespace NBitcoin
 				}
 				if (redeem_script != null && validOutpoint)
 				{
-					if (redeem_script.Hash.ScriptPubKey != NonWitnessUtxo.Outputs[PrevOut.N].ScriptPubKey)
+					if (redeem_script.Hash(Parent.Network.Hasher).ScriptPubKey != NonWitnessUtxo.Outputs[PrevOut.N].ScriptPubKey)
 						errors.Add(new PSBTError(Index, "The redeem_script is not coherent with the scriptPubKey of the non_witness_utxo"));
 				}
 			}
@@ -474,7 +474,7 @@ namespace NBitcoin
 			{
 				if (redeem_script != null)
 				{
-					if (redeem_script.Hash.ScriptPubKey != witness_utxo.ScriptPubKey)
+					if (redeem_script.Hash(Parent.Network.Hasher).ScriptPubKey != witness_utxo.ScriptPubKey)
 						errors.Add(new PSBTError(Index, "The redeem_script is not coherent with the scriptPubKey of the witness_utxo"));
 					if (witness_script != null &&
 						redeem_script != null &&
@@ -552,7 +552,7 @@ namespace NBitcoin
 
 			if (this.TaprootMerkleRoot is uint256 merkleRoot)
 				map.Add([PSBTConstants.PSBT_IN_TAP_MERKLE_ROOT], TaprootMerkleRoot.ToBytes());
-			
+
 			if (this.TaprootInternalKey is TaprootInternalPubKey tp)
 				map.Add([PSBTConstants.PSBT_IN_TAP_INTERNAL_KEY], tp.ToBytes());
 
@@ -844,7 +844,7 @@ namespace NBitcoin
 		public bool VerifyScript(PrecomputedTransactionData? precomputedTransactionData, out ScriptError err) => VerifyScript(Parent.Settings.ScriptVerify, precomputedTransactionData, out err);
 		public bool VerifyScript(ScriptVerify scriptVerify, PrecomputedTransactionData? precomputedTransactionData, out ScriptError err)
 		{
-			var eval = new ScriptEvaluationContext
+			var eval = new ScriptEvaluationContext(Parent.Network.Hasher)
 			{
 				ScriptVerify = scriptVerify
 			};
@@ -950,7 +950,7 @@ namespace NBitcoin
 		}
 		private void CheckCompatibleSigHash(uint sigHash)
 		{
-			if (this.sighash_type is uint s && !SameSigHash(s,sigHash))
+			if (this.sighash_type is uint s && !SameSigHash(s, sigHash))
 				throw new InvalidOperationException($"The input assert the use of sighash {GetName(s)}");
 		}
 
@@ -1033,7 +1033,7 @@ namespace NBitcoin
 					return null;
 				}
 
-				if (redeemScript.Hash != scriptId)
+				if (redeemScript.Hash(Parent.Network.Hasher) != scriptId)
 				{
 					error = "Spending p2sh output but redeem_script is not matching the utxo scriptPubKey";
 					return null;

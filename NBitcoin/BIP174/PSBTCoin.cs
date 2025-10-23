@@ -95,7 +95,7 @@ namespace NBitcoin
 				var output = GetTxOut();
 				if (output != null)
 				{
-					if (pubKey.WitHash.ScriptPubKey.Hash.ScriptPubKey == output.ScriptPubKey)
+					if (pubKey.WitHash.ScriptPubKey.Hash(pubKey.Hasher).ScriptPubKey == output.ScriptPubKey)
 					{
 						redeem_script = pubKey.WitHash.ScriptPubKey;
 					}

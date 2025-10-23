@@ -85,7 +85,7 @@ namespace NBitcoin.Tests
 				nodeBuilder.StartAll();
 				rpc.Generate(102);
 
-				var key = new Key();
+				var key = new Key(nodeBuilder.Network);
 				var addr = key.PubKey.GetTaprootFullPubKey().GetAddress(nodeBuilder.Network);
 
 				foreach (var anyoneCanPay in new[] { false, true })
@@ -121,7 +121,7 @@ namespace NBitcoin.Tests
 		}
 
 		// btc only; specifically requires/uses NodeDownloadData.Bitcoin.v25_0
-		[ConditionalNetworkTest(NetworkTestRule.Only, "btc")]
+		[ConditionalNetworkFact(NetworkTestRule.Only, "btc")]
 		[Trait("UnitTest", "UnitTest")]
 		public void CanSignUsingTapscriptAndKeySpend()
 		{
@@ -143,7 +143,7 @@ namespace NBitcoin.Tests
 			for (int i = 0; i < ecPrivateKeysHex.Length; i++)
 			{
 				byte[] privateKeyBytes = Encoders.Hex.DecodeData(ecPrivateKeysHex[i]);
-				privateKeys[i] = new Key(privateKeyBytes);
+				privateKeys[i] = new Key(Network.RegTest, privateKeyBytes);
 			}
 
 			var peers = ecPrivateKeys.Length;
@@ -174,7 +174,7 @@ namespace NBitcoin.Tests
 
 			var scriptWeights = scriptWeightsList.ToArray();
 
-			var keySpend = new Key(Encoders.Hex.DecodeData("c0655fae21a8b7fae19cfeac6135ded8090920f9640a148b0fd5ff9c15c6e948"));
+			var keySpend = new Key(Network.RegTest, Encoders.Hex.DecodeData("c0655fae21a8b7fae19cfeac6135ded8090920f9640a148b0fd5ff9c15c6e948"));
 			var KeySpendinternalPubKey = keySpend.PubKey.TaprootInternalKey;
 			var treeInfo = TaprootSpendInfo.WithHuffmanTree(KeySpendinternalPubKey, scriptWeights);
 			taprootPubKey = treeInfo.OutputPubKey.OutputKey;
@@ -243,7 +243,7 @@ namespace NBitcoin.Tests
 		public void CanGenerateTaprootPubKey()
 		{
 			var mnemo = new Mnemonic("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about");
-			var root = mnemo.DeriveExtKey();
+			var root = mnemo.DeriveExtKey(Network.Main);
 
 			// From BIP86
 			foreach (var v in new[]

@@ -274,7 +274,8 @@ namespace NBitcoin
 		[Obsolete("Do not use this, it isn't possible to get a signer's address from a script without taking heuristic which can be gamed by a malicious actor")]
 		public IDestination GetSigner()
 		{
-			return scriptSig.GetSigner() ?? witScript.GetSigner();
+			var hasher = GetConsensusFactory();
+			return scriptSig.GetSigner(hasher) ?? witScript.GetSigner(hasher);
 		}
 
 		WitScript witScript = WitScript.Empty;
@@ -307,7 +308,8 @@ namespace NBitcoin
 
 		public bool IsFrom(PubKey pubKey)
 		{
-			var result = PayToPubkeyHashTemplate.Instance.ExtractScriptSigParameters(ScriptSig);
+			var hasher = GetConsensusFactory();
+			var result = PayToPubkeyHashTemplate.Instance.ExtractScriptSigParameters(ScriptSig, hasher);
 			return result != null && result.PublicKey == pubKey;
 		}
 
@@ -446,7 +448,7 @@ namespace NBitcoin
 				stream.ReadWriteAsCompactVarInt(ref val);
 				_TxOut.Value = new Money(DecompressAmount(val));
 			}
-			ScriptCompressor cscript = new ScriptCompressor(_TxOut.ScriptPubKey);
+			ScriptCompressor cscript = new ScriptCompressor(_TxOut.ScriptPubKey, _TxOut.GetConsensusFactory());
 			stream.ReadWrite(ref cscript);
 			if (!stream.Serializing)
 				_TxOut.ScriptPubKey = new Script(cscript.ScriptBytes);
@@ -470,13 +472,15 @@ namespace NBitcoin
 				return _Script;
 			}
 		}
-		public ScriptCompressor(Script script)
+		private IHasher Hasher { get; }
+		public ScriptCompressor(Script script, IHasher hasher)
 		{
 			_Script = script.ToBytes(true);
+			this.Hasher = hasher;
 		}
-		public ScriptCompressor()
+		public ScriptCompressor(IHasher hasher)
 		{
-
+			this.Hasher = hasher;
 		}
 
 		public Script GetScript()
@@ -504,7 +508,7 @@ namespace NBitcoin
 				Array.Copy(scriptID.ToBytes(), 0, result, 1, 20);
 				return result;
 			}
-			PubKey pubkey = PayToPubkeyTemplate.Instance.ExtractScriptPubKeyParameters(script, true);
+			PubKey pubkey = PayToPubkeyTemplate.Instance.ExtractScriptPubKeyParameters(script, this.Hasher, true);
 			if (pubkey != null)
 			{
 				result = new byte[33];
@@ -544,7 +548,7 @@ namespace NBitcoin
 					byte[] vch = new byte[33];
 					vch[0] = (byte)(nSize - 2);
 					Array.Copy(data, 0, vch, 1, 32);
-					PubKey pubkey = new PubKey(vch);
+					PubKey pubkey = new PubKey(vch, this.Hasher);
 					pubkey = pubkey.Decompress();
 					return PayToPubkeyTemplate.Instance.GenerateScriptPubKey(pubkey);
 			}
@@ -814,7 +818,7 @@ namespace NBitcoin
 		{
 			if (spentOutput is null)
 				throw new ArgumentNullException(nameof(spentOutput));
-			var eval = new ScriptEvaluationContext
+			var eval = new ScriptEvaluationContext(spentOutput.GetConsensusFactory())
 			{
 				ScriptVerify = scriptVerify,
 			};
@@ -1351,9 +1355,9 @@ namespace NBitcoin
 			return new WitScript(ToBytes());
 		}
 		[Obsolete("Do not use this, it isn't possible to get a signer's address from a script without taking heuristic which can be gamed by a malicious actor")]
-		public IAddressableDestination? GetSigner()
+		public IAddressableDestination? GetSigner(IHasher hasher)
 		{
-			var pubKey = PayToWitPubKeyHashTemplate.Instance.ExtractWitScriptParameters(this);
+			var pubKey = PayToWitPubKeyHashTemplate.Instance.ExtractWitScriptParameters(this, hasher);
 			if (pubKey != null)
 			{
 				return pubKey.PublicKey.WitHash;
@@ -1530,7 +1534,7 @@ namespace NBitcoin
 			}
 		}
 
-#region IBitcoinSerializable Members
+		#region IBitcoinSerializable Members
 
 		public virtual void ReadWrite(BitcoinStream stream)
 		{
@@ -1617,7 +1621,7 @@ namespace NBitcoin
 			stream.ReadWriteStruct(ref nLockTime);
 		}
 
-#endregion
+		#endregion
 
 		public uint256 GetHash()
 		{

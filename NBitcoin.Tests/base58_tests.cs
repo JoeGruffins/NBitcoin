@@ -49,7 +49,7 @@ namespace NBitcoin.Tests
 		[Fact]
 		public void ThrowOnInvalidECKey()
 		{
-			Assert.Throws<ArgumentException>(() => new Key(Encoders.Base58.DecodeData("JEKNVnkbo3jma5nREBBJCD7MJVUPAg5THBwPPejEsG9v")));
+			Assert.Throws<ArgumentException>(() => new Key(Network.Main.Hasher, Encoders.Base58.DecodeData("JEKNVnkbo3jma5nREBBJCD7MJVUPAg5THBwPPejEsG9v")));
 		}
 
 		[Fact]
@@ -166,7 +166,7 @@ namespace NBitcoin.Tests
 				if (isPrivkey)
 				{
 					bool isCompressed = metadata.isCompressed;
-					Key key = new Key(exp_payload, fCompressedIn: isCompressed);
+					Key key = new Key(network.Hasher, exp_payload, fCompressedIn: isCompressed);
 					BitcoinSecret secret = network.CreateBitcoinSecret(key);
 					Assert.True(secret.ToString() == exp_base58string, "result mismatch: " + strTest);
 				}

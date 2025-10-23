@@ -17,7 +17,6 @@ namespace NBitcoin
 			SpentOutputs = spentOutputs;
 			Transaction = transaction;
 		}
-
 		public Transaction Transaction { get; }
 		public TxOut[] SpentOutputs { get; }
 
@@ -30,20 +29,15 @@ namespace NBitcoin
 			result = ValidateInput(index);
 			return result.Error is null;
 		}
-		public Func<byte[], int, int, uint160> Hash160
-		{
-			get;
-			set;
-		} = Hashes.Hash160;
+
 		public InputValidationResult ValidateInput(int index)
 		{
 			if (index < 0 || index >= SpentOutputs.Length)
 				throw new ArgumentOutOfRangeException(nameof(index));
-			ScriptEvaluationContext ctx = new ScriptEvaluationContext()
+			ScriptEvaluationContext ctx = new ScriptEvaluationContext(Transaction.GetConsensusFactory())
 			{
 				ScriptVerify = ScriptVerify
 			};
-			ctx.Hash160 = this.Hash160;
 
 			if (Transaction is IHasForkId)
 				ctx.ScriptVerify |= NBitcoin.ScriptVerify.ForkId;

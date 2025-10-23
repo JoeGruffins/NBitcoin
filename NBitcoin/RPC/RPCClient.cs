@@ -427,7 +427,7 @@ namespace NBitcoin.RPC
 				return;
 			}
 #endif
-			var address = new Key().GetAddress(type, rpc.Network);
+			var address = new Key(rpc.Network.Hasher).GetAddress(type, rpc.Network);
 			if (address == null)
 			{
 				setResult(false);
@@ -1050,7 +1050,14 @@ namespace NBitcoin.RPC
 		static Encoding NoBOMUTF8 = new UTF8Encoding(false);
 		public async Task<RPCResponse> SendCommandAsync(RPCRequest request, CancellationToken cancellationToken = default)
 		{
-			RPCResponse response = null;
+			RPCResponse response = Network.Consensus.ConsensusFactory.RPCRequestHook(ref request);
+			if (response != null)
+			{
+				if (request.ThrowIfRPCError)
+					response?.ThrowIfError();
+				return response;
+			}
+
 			var batches = _BatchedRequests;
 			if (batches != null)
 			{
@@ -1190,6 +1197,23 @@ namespace NBitcoin.RPC
 
 				Utils.TryParseEndpoint((string)peer["addr"], this.Network.DefaultPort, out var addressEnpoint);
 				Utils.TryParseEndpoint(localAddr, this.Network.DefaultPort, out var localEndpoint);
+
+				if (Network.IsDecred)
+				{
+					// Decred currently only returns these info.
+					result[i++] = new PeerInfo
+					{
+						Id = (int)peer["id"],
+						Address = addressEnpoint,
+						LocalAddress = localEndpoint,
+						Services = (NodeServices)services,
+						Version = (int)peer["version"],
+						SubVersion = (string)peer["subver"],
+						StartingHeight = (int)peer["startingheight"],
+						BanScore = peer["banscore"] == null ? 0 : (int)peer["banscore"],
+					};
+					continue;
+				}
 
 				result[i++] = new PeerInfo
 				{
@@ -1527,7 +1551,7 @@ namespace NBitcoin.RPC
 		private GetBlockRPCResponse ParseVerboseBlock(RPCResponse resp, int verbosity)
 		{
 			var json = (JObject)resp.Result;
-			var customParse = Network.Consensus.ConsensusFactory.ParseGetBlockRPCRespose;
+			var customParse = Network.Consensus.ConsensusFactory.ParseGetBlockRPCResponse;
 			if (customParse(json, verbosity == 2, out var blockHeader, out var block, out var txids))
 			{
 				return MakeGetBlockRPCResponse(json, blockHeader, block, txids);

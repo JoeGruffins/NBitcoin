@@ -71,7 +71,7 @@ namespace NBitcoin
 	{
 
 		[Obsolete("Use OutputDescriptor.IsSolvable")]
-		public static bool IsSolvable(this ISigningRepository repo, Script scriptPubKey)
+		public static bool IsSolvable(this ISigningRepository repo, Script scriptPubKey, Network network)
 		{
 			var temp = scriptPubKey.FindTemplate();
 
@@ -91,7 +91,7 @@ namespace NBitcoin
 
 			if (temp is PayToPubkeyTemplate p2pkT)
 			{
-				var pk = p2pkT.ExtractScriptPubKeyParameters(scriptPubKey)!;
+				var pk = p2pkT.ExtractScriptPubKeyParameters(scriptPubKey, network.Hasher)!;
 				if (repo.TryGetPubKey(pk.Hash, out var _))
 					return true;
 			}
@@ -105,7 +105,7 @@ namespace NBitcoin
 			PubKey[]? pks = null;
 			if (temp is PayToMultiSigTemplate p2multiT)
 			{
-				pks = p2multiT.ExtractScriptPubKeyParameters(scriptPubKey)!.PubKeys;
+				pks = p2multiT.ExtractScriptPubKeyParameters(scriptPubKey, network.Hasher)!.PubKeys;
 			}
 
 			if (temp is PayToScriptHashTemplate p2shT)
@@ -115,7 +115,7 @@ namespace NBitcoin
 				if (repo.TryGetScript(scriptId, out var sc))
 				{
 					scriptPubKey = sc;
-					pks = sc.GetAllPubKeys();
+					pks = sc.GetAllPubKeys(network);
 				}
 			}
 
@@ -125,7 +125,7 @@ namespace NBitcoin
 				if (witId != null)
 				{
 					if (repo.TryGetScript(witId.HashForLookUp, out var sc))
-						pks = sc.GetAllPubKeys();
+						pks = sc.GetAllPubKeys(network);
 				}
 				var wpkh = PayToWitPubKeyHashTemplate.Instance.ExtractScriptPubKeyParameters(scriptPubKey);
 				if (wpkh != null)
@@ -159,7 +159,7 @@ namespace NBitcoin
 
 	public class FlatSigningRepository : ISigningRepository
 	{
-		public ConcurrentDictionary<KeyId, ISecret> Secrets {get;}
+		public ConcurrentDictionary<KeyId, ISecret> Secrets { get; }
 		public ConcurrentDictionary<KeyId, PubKey> Pubkeys { get; }
 		public ConcurrentDictionary<KeyId, RootedKeyPath> KeyIdToKeyOrigins { get; }
 		public ConcurrentDictionary<ScriptId, Script> Scripts { get; }
@@ -169,7 +169,7 @@ namespace NBitcoin
 		public ConcurrentDictionary<TaprootPubKey, ISecret> TaprootKeysToSecret { get;  }
 #endif
 
-		public RootedKeyPath [] KeyOrigins =>
+		public RootedKeyPath[] KeyOrigins =>
 			KeyIdToKeyOrigins.Values.ToArray()
 #if HAS_SPAN
 				.Concat(this.TaprootKeyOrigins.Values.ToArray()).ToArray()
@@ -305,7 +305,7 @@ namespace NBitcoin
 				throw new NotSupportedException($"{nameof(FlatSigningRepository)} can be merged only with the same type");
 			}
 
-			var otherRepo = (FlatSigningRepository) other;
+			var otherRepo = (FlatSigningRepository)other;
 			MergeDict(Secrets, otherRepo.Secrets);
 			MergeDict(Pubkeys, otherRepo.Pubkeys);
 			MergeDict(Scripts, otherRepo.Scripts);

@@ -43,7 +43,7 @@ namespace NBitcoin.Tests
 		[Trait("UnitTest", "UnitTest")]
 		public static void CanDeriveHDKey()
 		{
-			var k = new ExtKey();
+			var k = new ExtKey(Network.Main.Hasher);
 			var kwif = k.GetWif(Network.Main);
 			var pk = k.Neuter();
 			var pkwif = pk.GetWif(Network.Main);
@@ -68,8 +68,8 @@ namespace NBitcoin.Tests
 		{
 			foreach (var network in new[] { Network.Main, Altcoins.BGold.Instance.Mainnet })
 			{
-				var aliceMaster = new ExtKey();
-				var bobMaster = new ExtKey();
+				var aliceMaster = new ExtKey(network.Hasher);
+				var bobMaster = new ExtKey(network.Hasher);
 
 				var alice = aliceMaster.Derive(new KeyPath("1'/2/3"));
 				var bob = bobMaster.Derive(new KeyPath("4/5/6"));
@@ -87,8 +87,8 @@ namespace NBitcoin.Tests
 				builder.SetGroupName("Alice");
 				builder.AddCoins(aliceCoin);
 				builder.AddKeys(alice);
-				builder.Send(new Key(), Money.Coins(0.2m));
-				builder.Send(new Key(), Money.Coins(0.1m));
+				builder.Send(new Key(network.Hasher), Money.Coins(0.2m));
+				builder.Send(new Key(network.Hasher), Money.Coins(0.1m));
 				builder.Send(bob, Money.Coins(0.123m));
 				builder.SetChange(alice);
 
@@ -96,8 +96,8 @@ namespace NBitcoin.Tests
 				builder.SetGroupName("Bob");
 				builder.AddCoins(bobCoin);
 				builder.AddKeys(bob);
-				builder.Send(new Key(), Money.Coins(0.25m));
-				builder.Send(new Key(), Money.Coins(0.01m));
+				builder.Send(new Key(network.Hasher), Money.Coins(0.25m));
+				builder.Send(new Key(network.Hasher), Money.Coins(0.01m));
 				builder.SetChange(bob);
 				builder.SendFees(Money.Coins(0.001m));
 
@@ -148,11 +148,11 @@ namespace NBitcoin.Tests
 		{
 			var funding = Network.Main.Consensus.ConsensusFactory.CreateTransaction();
 			funding.Inputs.Add(OutPoint.Zero);
-			funding.Outputs.Add(new TxOut(Money.Coins(1.0m), new Key()));
+			funding.Outputs.Add(new TxOut(Money.Coins(1.0m), new Key(Network.Main.Hasher)));
 
 			var tx = Network.Main.Consensus.ConsensusFactory.CreateTransaction();
 			tx.Inputs.Add(funding, 0);
-			tx.Outputs.Add(new TxOut(Money.Coins(0.5m), new Key()));
+			tx.Outputs.Add(new TxOut(Money.Coins(0.5m), new Key(Network.Main.Hasher)));
 
 			var psbt = PSBT.FromTransaction(tx, Network.Main);
 			Assert.False(psbt.TryGetFee(out _));
@@ -253,7 +253,7 @@ namespace NBitcoin.Tests
 		[Trait("UnitTest", "UnitTest")]
 		public void ShouldPreserveOriginalTxPropertyAsPossible()
 		{
-			var keys = new Key[] { new Key(), new Key(), new Key() }.Select(k => k.GetWif(Network.RegTest)).ToArray();
+			var keys = new Key[] { new Key(Network.RegTest.Hasher), new Key(Network.RegTest.Hasher), new Key(Network.RegTest.Hasher) }.Select(k => k.GetWif(Network.RegTest)).ToArray();
 			var redeem = PayToMultiSigTemplate.Instance.GenerateScriptPubKey(3, keys.Select(k => k.PubKey).ToArray());
 			var network = Network.Main;
 			var funds = CreateDummyFunds(network, keys, redeem);
@@ -424,7 +424,7 @@ namespace NBitcoin.Tests
 		[Trait("UnitTest", "UnitTest")]
 		public void OutputKeyPathCorrect(PSBTVersion version)
 		{
-			var keys = Enumerable.Range(0, 5).Select(_ => new ExtKey()).ToArray();
+			var keys = Enumerable.Range(0, 5).Select(_ => new ExtKey(Network.Main.Hasher)).ToArray();
 
 			var accountKey = new KeyPath("84'/0'/0'");
 			var accountKeys = keys.Select(k => k.Derive(accountKey).Neuter()).ToArray();
@@ -464,7 +464,7 @@ namespace NBitcoin.Tests
 		[Trait("UnitTest", "UnitTest")]
 		public void ShouldCaptureExceptionInFinalization()
 		{
-			var keys = new Key[] { new Key(), new Key(), new Key() }.Select(k => k.GetWif(Network.RegTest)).ToArray();
+			var keys = new Key[] { new Key(Network.RegTest.Hasher), new Key(Network.RegTest.Hasher), new Key(Network.RegTest.Hasher) }.Select(k => k.GetWif(Network.RegTest)).ToArray();
 			var redeem = PayToMultiSigTemplate.Instance.GenerateScriptPubKey(3, keys.Select(k => k.PubKey).ToArray());
 			var network = Network.Main;
 			var funds = CreateDummyFunds(network, keys, redeem);
@@ -479,7 +479,7 @@ namespace NBitcoin.Tests
 		[Trait("UnitTest", "UnitTest")]
 		public void AddingScriptCoinShouldResultMoreInfoThanAddingSeparatelyInCaseOfP2SH()
 		{
-			var keys = new Key[] { new Key(), new Key(), new Key() }.Select(k => k.GetWif(Network.RegTest)).ToArray();
+			var keys = new Key[] { new Key(Network.RegTest.Hasher), new Key(Network.RegTest.Hasher), new Key(Network.RegTest.Hasher) }.Select(k => k.GetWif(Network.RegTest)).ToArray();
 			var redeem = PayToMultiSigTemplate.Instance.GenerateScriptPubKey(3, keys.Select(k => k.PubKey).ToArray());
 			var network = Network.Main;
 			var funds = CreateDummyFunds(network, keys, redeem);
@@ -586,7 +586,7 @@ namespace NBitcoin.Tests
 			for (int i = 0; i < 6; i++)
 			{
 				var pk = testcase[$"pubkey{i}"];
-				var pubkey = new PubKey((string)pk["hex"]);
+				var pubkey = new PubKey((string)pk["hex"], network.Hasher);
 				var path = KeyPath.Parse((string)pk["path"]);
 				psbt.AddKeyPath(pubkey, new RootedKeyPath(masterFP, path));
 			}
@@ -665,7 +665,7 @@ namespace NBitcoin.Tests
 			var accountExtKey = masterExtkey.Derive(new KeyPath("0'/0'/0'"));
 			var accountRootedKeyPath = new KeyPath("0'/0'/0'").ToRootedKeyPath(masterExtkey);
 			uint hardenedFlag = 0x80000000U;
-			retry:
+		retry:
 			Transaction funding = masterExtkey.Network.CreateTransaction();
 			funding.Inputs.Add();
 			funding.Outputs.Add(Money.Coins(2.0m), accountExtKey.Derive(0 | hardenedFlag).ScriptPubKey);
@@ -866,7 +866,7 @@ namespace NBitcoin.Tests
 			// 2. p2sh-multisig
 			var tx2 = network.CreateTransaction();
 			tx2.Inputs.Add(TxIn.CreateCoinbase(200));
-			tx2.Outputs.Add(new TxOut(Money.Coins(0.1m), redeem.Hash));
+			tx2.Outputs.Add(new TxOut(Money.Coins(0.1m), redeem.Hash(network.Hasher)));
 
 			// 3. p2wsh
 			var tx3 = network.CreateTransaction();
@@ -876,12 +876,12 @@ namespace NBitcoin.Tests
 			// 4. p2sh-p2wpkh
 			var tx4 = network.CreateTransaction();
 			tx4.Inputs.Add(TxIn.CreateCoinbase(200));
-			tx4.Outputs.Add(new TxOut(Money.Coins(0.1m), keyForOutput[0].PubKey.WitHash.ScriptPubKey.Hash));
+			tx4.Outputs.Add(new TxOut(Money.Coins(0.1m), keyForOutput[0].PubKey.WitHash.ScriptPubKey.Hash(network.Hasher)));
 
 			// 5. p2sh-p2wsh
 			var tx5 = network.CreateTransaction();
 			tx5.Inputs.Add(TxIn.CreateCoinbase(200));
-			tx5.Outputs.Add(new TxOut(Money.Coins(0.1m), redeem.WitHash.ScriptPubKey.Hash.ScriptPubKey));
+			tx5.Outputs.Add(new TxOut(Money.Coins(0.1m), redeem.WitHash.ScriptPubKey.Hash(network.Hasher).ScriptPubKey));
 			return new Transaction[] { tx1, tx2, tx3, tx4, tx5 };
 		}
 

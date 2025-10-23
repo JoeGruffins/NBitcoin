@@ -206,7 +206,7 @@ namespace NBitcoin.Tests
 		public void CanUseSegwitAddress()
 		{
 			var address = (BitcoinWitPubKeyAddress)BitcoinAddress.Create("bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4", Network.Main);
-			var pubkey = new PubKey("0279BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798");
+			var pubkey = new PubKey("0279BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", Network.Main);
 			Assert.Equal(pubkey.WitHash.ScriptPubKey.ToHex(), address.ScriptPubKey.ToHex());
 			Assert.Equal("0014751e76e8199196d454941c45d1b3a323f1433bd6", address.Hash.ScriptPubKey.ToHex());
 			Assert.Equal("bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4", address.ScriptPubKey.GetDestinationAddress(address.Network).ToString());
@@ -216,7 +216,7 @@ namespace NBitcoin.Tests
 			Assert.Equal("tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx", address.ScriptPubKey.GetDestinationAddress(address.Network).ToNetwork(Network.TestNet).ToString());
 
 			address = (BitcoinWitPubKeyAddress)BitcoinAddress.Create("tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx", Network.TestNet);
-			pubkey = new PubKey("0279BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798");
+			pubkey = new PubKey("0279BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", Network.Main);
 			Assert.Equal(pubkey.WitHash.ScriptPubKey.ToHex(), address.ScriptPubKey.ToHex());
 			Assert.Equal("tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx", address.ScriptPubKey.GetDestinationAddress(address.Network).ToString());
 			Assert.Equal("0014751e76e8199196d454941c45d1b3a323f1433bd6", address.Hash.ScriptPubKey.ToHex());
@@ -231,7 +231,7 @@ namespace NBitcoin.Tests
 			Assert.Equal("bc1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3qccfmv3", addressScript.ScriptPubKey.GetDestinationAddress(addressScript.Network).ToString());
 
 			//Example of the BIP
-			pubkey = new PubKey("0450863AD64A87AE8A2FE83C1AF1A8403CB53F53E486D8511DAD8A04887E5B23522CD470243453A299FA9E77237716103ABC11A1DF38855ED6F2EE187E9C582BA6");
+			pubkey = new PubKey("0450863AD64A87AE8A2FE83C1AF1A8403CB53F53E486D8511DAD8A04887E5B23522CD470243453A299FA9E77237716103ABC11A1DF38855ED6F2EE187E9C582BA6", Network.Main);
 			Assert.Equal(new Script("OP_0 010966776006953D5567439E5E39F86A0D273BEE"), pubkey.GetAddress(ScriptPubKeyType.Segwit, Network.Main).ScriptPubKey);
 
 
@@ -251,7 +251,7 @@ namespace NBitcoin.Tests
 
 			Assert.Throws<Bech32FormatException>(() => new BitcoinWitPubKeyAddress("bc1qw507d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4", Network.Main));
 
-			var extKey = new BitcoinExtKey(new ExtKey(), Network.Main);
+			var extKey = new BitcoinExtKey(new ExtKey(Network.Main), Network.Main); // TODO: Get one from the other!!
 			var segwit = extKey.AsHDScriptPubKey(ScriptPubKeyType.Segwit).ScriptPubKey.GetDestinationAddress(Network.Main);
 			var segwit2 = extKey.ExtKey.AsHDScriptPubKey(ScriptPubKeyType.Segwit).ScriptPubKey.GetDestinationAddress(Network.Main);
 			Assert.Equal(segwit, segwit2);
@@ -559,7 +559,7 @@ namespace NBitcoin.Tests
 		[Trait("UnitTest", "UnitTest")]
 		public void CanSplitMoneyBag()
 		{
-			var gold = new AssetId(new Key());
+			var gold = new AssetId(new Key(Network.Main), Network.Main);
 			MoneyBag bag = new MoneyBag();
 			bag += Money.Coins(12);
 			bag += new AssetMoney(gold, 10);
@@ -573,7 +573,7 @@ namespace NBitcoin.Tests
 		[Trait("UnitTest", "UnitTest")]
 		public void CanSplitAssetMoney()
 		{
-			var gold = new AssetId(new Key());
+			var gold = new AssetId(new Key(Network.Main), Network.Main);
 			CanSplitAssetMoneyCore(gold, 1234, 3);
 			CanSplitAssetMoneyCore(gold, 1234, 2);
 			CanSplitAssetMoneyCore(gold, 1234, 10);
@@ -603,8 +603,8 @@ namespace NBitcoin.Tests
 		[Trait("UnitTest", "UnitTest")]
 		public void CanCompareKey()
 		{
-			var privateKey = new Key();
-			var otherKey = new Key();
+			var privateKey = new Key(Network.Main);
+			var otherKey = new Key(Network.Main);
 			var bitcoinSecret = privateKey.GetWif(Network.Main);
 			var samePrivateKey = bitcoinSecret.PrivateKey;
 			Assert.Equal(samePrivateKey, privateKey);
@@ -803,7 +803,7 @@ namespace NBitcoin.Tests
 		[Trait("UnitTest", "UnitTest")]
 		public void CanUseHDCache()
 		{
-			var k = new ExtKey();
+			var k = new ExtKey(Network.Main);
 			var cache = (HDKeyCache)k.AsHDKeyCache();
 			var actual = cache.Derive(0);
 			var expected = k.Derive(0);
@@ -913,8 +913,8 @@ namespace NBitcoin.Tests
 			};
 			foreach (var test in tests)
 			{
-				var pubKey = new PubKey(test.Pubkey);
-				var key = new Key(Encoders.Hex.DecodeData(test.Private));
+				var pubKey = new PubKey(test.Pubkey, Network.Main);
+				var key = new Key(Network.Main, Encoders.Hex.DecodeData(test.Private));
 				var secret = pubKey.GetSharedPubkey(key);
 				Assert.Equal(test.ExpectedSecret, Encoders.Hex.EncodeData(Hashes.SHA256(secret.ToBytes())));
 			}
@@ -962,7 +962,7 @@ namespace NBitcoin.Tests
 			var secret = NBitcoin.Crypto.Pbkdf2.ComputeDerivedKey(new System.Security.Cryptography.HMACSHA512(bytes), new byte[0], 1024, 32);
 #endif
 #pragma warning restore CS0618
-			return new Key(secret);
+			return new Key(Network.Main, secret);
 		}
 
 		[Fact]
@@ -975,12 +975,12 @@ namespace NBitcoin.Tests
 			var scriptAddress = new BitcoinScriptAddress(new ScriptId("8f55563b9a19f321c211e9b9f38cdf686ea07845"), Network.Main);
 			Assert.Equal("OP_HASH160 8f55563b9a19f321c211e9b9f38cdf686ea07845 OP_EQUAL", scriptAddress.ScriptPubKey.ToString());
 
-			var pubKey = new PubKey("0359d3092e4a8d5f3b3948235b5dec7395259273ccf3c4e9d5e16695a3fc9588d6");
+			var pubKey = new PubKey("0359d3092e4a8d5f3b3948235b5dec7395259273ccf3c4e9d5e16695a3fc9588d6", Network.Main);
 			Assert.Equal("OP_DUP OP_HASH160 4d29186f76581c7375d70499afd1d585149d42cd OP_EQUALVERIFY OP_CHECKSIG", pubKey.Hash.ScriptPubKey.ToString());
 			Assert.Equal("0359d3092e4a8d5f3b3948235b5dec7395259273ccf3c4e9d5e16695a3fc9588d6 OP_CHECKSIG", pubKey.ScriptPubKey.ToString());
 
 			Script script = new Script("0359d3092e4a8d5f3b3948235b5dec7395259273ccf3c4e9d5e16695a3fc9588d6 OP_CHECKSIG");
-			Assert.Equal("OP_HASH160 a216e3bce8c1b3adf376731b6cd0b6936c4e053f OP_EQUAL", script.PaymentScript.ToString());
+			Assert.Equal("OP_HASH160 a216e3bce8c1b3adf376731b6cd0b6936c4e053f OP_EQUAL", script.PaymentScript(Network.Main).ToString());
 		}
 
 		public class DummyClass
@@ -1008,7 +1008,7 @@ namespace NBitcoin.Tests
 
 			address = new
 			{
-				Base58 = new ExtKey().Neuter().ToString(Network.RegTest),
+				Base58 = new ExtKey(Network.RegTest).Neuter().ToString(Network.RegTest),
 				ExpectedType = typeof(BitcoinExtPubKey),
 				Network = Network.RegTest
 			};
@@ -1020,7 +1020,7 @@ namespace NBitcoin.Tests
 			result = Network.Parse(address.Base58, Network.TestNet);
 			Assert.True(result.Network == Network.TestNet);
 
-			var str = Serializer.ToString(new DummyClass() { ExtPubKey = new ExtKey().Neuter().GetWif(Network.RegTest) }, Network.RegTest);
+			var str = Serializer.ToString(new DummyClass() { ExtPubKey = new ExtKey(Network.RegTest).Neuter().GetWif(Network.RegTest) }, Network.RegTest);
 			Assert.NotNull(Serializer.ToObject<DummyClass>(str, Network.RegTest));
 		}
 

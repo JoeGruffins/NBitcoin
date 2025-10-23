@@ -14,7 +14,7 @@ namespace NBitcoin.Altcoins.Elements
 	{
 		private static readonly int KEY_SIZE = 32;
 		private byte[] _data;
-		static readonly byte[]  HMAC_MASTER_NODE_KEY = Encoding.ASCII.GetBytes("Symmetric key seed");
+		static readonly byte[] HMAC_MASTER_NODE_KEY = Encoding.ASCII.GetBytes("Symmetric key seed");
 
 		public Slip21Node(byte[] data)
 		{
@@ -24,7 +24,7 @@ namespace NBitcoin.Altcoins.Elements
 		}
 
 
-		public Key Key => new Key(_data.SafeSubarray(KEY_SIZE, KEY_SIZE));
+		public Key Key(Network network) => new Key(network.Hasher, _data.SafeSubarray(KEY_SIZE, KEY_SIZE));
 
 		public static Slip21Node FromSeed(string seed)
 		{
@@ -60,7 +60,7 @@ namespace NBitcoin.Altcoins.Elements
 				throw new ArgumentException("label must not be null", nameof(label));
 			}
 			return new Slip21Node(
-				Hashes.HMACSHA512(_data.SafeSubarray(0, KEY_SIZE), new byte[] {0x00}.Concat(label).ToArray()));
+				Hashes.HMACSHA512(_data.SafeSubarray(0, KEY_SIZE), new byte[] { 0x00 }.Concat(label).ToArray()));
 		}
 	}
 }

@@ -32,7 +32,7 @@ namespace NBitcoin.Altcoins.Elements
 			return ParseTxHex(result.Result["hex"].Value<string>(), network ?? Liquid.Instance.Mainnet);
 		}
 
-		private static ElementsTransaction ParseTxHex(string hex,  Network network)
+		private static ElementsTransaction ParseTxHex(string hex, Network network)
 		{
 			var tx = network.Consensus.ConsensusFactory.CreateTransaction() as ElementsTransaction;
 			tx.ReadWrite(NBitcoin.DataEncoders.Encoders.Hex.DecodeData(hex), network);
@@ -79,12 +79,12 @@ namespace NBitcoin.Altcoins.Elements
 			return ElementsGetAddressInfoResponse.FromJsonResponse((JObject)response.Result, network);
 		}
 
-		public static async Task<Dictionary<string,Money>> GetBalancesAsync(this RPCClient rpcClient)
+		public static async Task<Dictionary<string, Money>> GetBalancesAsync(this RPCClient rpcClient)
 		{
 			var response = await rpcClient.SendCommandAsync(ElementsRPCOperations.getbalance);
 
 			return response.Result.Children().ToDictionary(token => (token as JProperty).Name,
-				token => Money.Parse(((JProperty) token).Value.ToString()));
+				token => Money.Parse(((JProperty)token).Value.ToString()));
 		}
 
 
@@ -106,13 +106,13 @@ namespace NBitcoin.Altcoins.Elements
 			base.LoadFromJson(raw, network);
 			Confidential = new BitcoinBlindedAddress(raw.Property("confidential").Value.Value<string>(), network);
 			Unconfidential = BitcoinAddress.Create(raw.Property("unconfidential").Value.Value<string>(), network);
-			ConfidentialKey = new PubKey(raw.Property("confidential_key").Value.Value<string>());
+			ConfidentialKey = new PubKey(raw.Property("confidential_key").Value.Value<string>(), network.Hasher);
 			return this;
 		}
 
 		public new static ElementsGetAddressInfoResponse FromJsonResponse(JObject raw, Network network)
 		{
-			return (ElementsGetAddressInfoResponse) new ElementsGetAddressInfoResponse().LoadFromJson(raw, network);
+			return (ElementsGetAddressInfoResponse)new ElementsGetAddressInfoResponse().LoadFromJson(raw, network);
 		}
 	}
 }

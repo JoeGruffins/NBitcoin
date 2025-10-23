@@ -52,7 +52,7 @@ namespace NBitcoin.Tests
 
 				foreach (var n in new[] { network.Mainnet, network.Testnet, network.Regtest })
 				{
-					n.Parse(new Key().PubKey.GetAddress(ScriptPubKeyType.Legacy, n).ToString());
+					n.Parse(new Key(n.Hasher).PubKey.GetAddress(ScriptPubKeyType.Legacy, n).ToString());
 				}
 			}
 		}
@@ -167,32 +167,34 @@ namespace NBitcoin.Tests
 		}
 
 		[Fact]
+		// TODO: Test for dcr and other networks actually, using nodebuilder.
 		public void Slip21Tests()
 		{
 			var allMnemonic = new Mnemonic("all all all all all all all all all all all all");
 			var master = Slip21Node.FromSeed(allMnemonic.DeriveSeed());
-			Assert.Equal("dbf12b44133eaab506a740f6565cc117228cbf1dd70635cfa8ddfdc9af734756", master.Key.ToHex());
+			Assert.Equal("dbf12b44133eaab506a740f6565cc117228cbf1dd70635cfa8ddfdc9af734756", master.Key(Network.Main).ToHex());
 
 			var child1 = master.DeriveChild("SLIP-0021");
-			Assert.Equal("1d065e3ac1bbe5c7fad32cf2305f7d709dc070d672044a19e610c77cdf33de0d", child1.Key.ToHex());
+			Assert.Equal("1d065e3ac1bbe5c7fad32cf2305f7d709dc070d672044a19e610c77cdf33de0d", child1.Key(Network.Main).ToHex());
 
 			var child2 = child1.DeriveChild("Master encryption key");
-			Assert.Equal("ea163130e35bbafdf5ddee97a17b39cef2be4b4f390180d65b54cf05c6a82fde", child2.Key.ToHex());
+			Assert.Equal("ea163130e35bbafdf5ddee97a17b39cef2be4b4f390180d65b54cf05c6a82fde", child2.Key(Network.Main).ToHex());
 
 			var child3 = child1.DeriveChild("Authentication key");
-			Assert.Equal("47194e938ab24cc82bfa25f6486ed54bebe79c40ae2a5a32ea6db294d81861a6", child3.Key.ToHex());
+			Assert.Equal("47194e938ab24cc82bfa25f6486ed54bebe79c40ae2a5a32ea6db294d81861a6", child3.Key(Network.Main).ToHex());
 		}
 
 		[Fact]
+		// TODO: Liquid-only test?
 		public void Slip77Tests()
 		{
 			//test vector: https://github.com/vulpemventures/slip77/commit/bc0fa0c712512d27cf1e2d6e1aaee5c36a3d38fa
 			var allMnemonic = new Mnemonic("all all all all all all all all all all all all");
 			var master = Slip21Node.FromSeed(allMnemonic.DeriveSeed());
-			Assert.Equal("dbf12b44133eaab506a740f6565cc117228cbf1dd70635cfa8ddfdc9af734756", master.Key.ToHex());
+			Assert.Equal("dbf12b44133eaab506a740f6565cc117228cbf1dd70635cfa8ddfdc9af734756", master.Key(Liquid.Instance.Regtest).ToHex());
 			var slip77 = Slip21Node.FromSeed(allMnemonic.DeriveSeed()).GetSlip77Node();
 			var script = Script.FromHex("76a914a579388225827d9f2fe9014add644487808c695d88ac");
-			var privateBlindingKey = slip77.DeriveSlip77BlindingKey(script);
+			var privateBlindingKey = slip77.DeriveSlip77BlindingKey(script, Liquid.Instance.Regtest);
 			var unconfidentialAddress =
 				BitcoinAddress.Create("2dpWh6jbhAowNsQ5agtFzi7j6nKscj6UnEr", Altcoins.Liquid.Instance.Regtest);
 			var publicBlindingKey = privateBlindingKey.PubKey;
@@ -207,11 +209,11 @@ namespace NBitcoin.Tests
 			//test vector: https://github.com/trezor/trezor-firmware/pull/398/files#diff-afc9a622fb2281269983493a9da47a364e94f8bd338e5322f4a7cef99f98ee69R119
 			var abusiveWords =
 				new Mnemonic("alcohol woman abuse must during monitor noble actual mixed trade anger aisle");
-			var derived = abusiveWords.DeriveExtKey().Derive(new KeyPath("44'/1'/0'/0/0"));
+			var derived = abusiveWords.DeriveExtKey(Liquid.Instance.Regtest.Hasher).Derive(new KeyPath("44'/1'/0'/0/0"));
 			var addr = derived.PrivateKey.GetAddress(ScriptPubKeyType.Legacy, Liquid.Instance.Regtest);
 			var abusiveslip77 = Slip21Node.FromSeed(abusiveWords.DeriveSeed()).GetSlip77Node();
 			Assert.Equal("26f1dc2c52222394236d76e0809516255cfcca94069fd5187c0f090d18f42ad6",
-				abusiveslip77.DeriveSlip77BlindingKey(addr.ScriptPubKey).ToHex());
+				abusiveslip77.DeriveSlip77BlindingKey(addr.ScriptPubKey, Liquid.Instance.Regtest).ToHex());
 		}
 
 		[Fact]
@@ -246,8 +248,8 @@ namespace NBitcoin.Tests
 			//p2sh-segwit blidned addresses mainnet
 			var key = Key.Parse("L22adb3BwuUxLoE8jDhNS7y9e92AYaHpXH5HSXZtFUKdJddEuFgm", network);
 			var blindingKey =
-				new Key(Encoders.Hex.DecodeData("bb1cbb24decbf8510c0db6ced89a0fca20382ef0aba1fcffc0f70b4310320892"));
-			var pubBlindingKey = new PubKey("0287bad01b847963609da945cd5a08a1937649f7adbfdba5dc7e9ff46a44e54bed");
+				new Key(network.Hasher, Encoders.Hex.DecodeData("bb1cbb24decbf8510c0db6ced89a0fca20382ef0aba1fcffc0f70b4310320892"));
+			var pubBlindingKey = new PubKey("0287bad01b847963609da945cd5a08a1937649f7adbfdba5dc7e9ff46a44e54bed", network.Hasher);
 			Assert.Equal(blindingKey.PubKey, pubBlindingKey);
 			var p2sh = key.PubKey.GetAddress(ScriptPubKeyType.SegwitP2SH, network);
 			Assert.Equal("GtqMkbR82hDis4EPKAaBNSKHY2ZR3ue4Ef", p2sh.ToString());
@@ -259,7 +261,7 @@ namespace NBitcoin.Tests
 			var legacy = key.PubKey.GetAddress(ScriptPubKeyType.Legacy, network);
 			Assert.Equal("QCAGkwismL6CZ8LR1Bvbzx1z3S7dfNsPwv", legacy.ToString());
 			blinded = new BitcoinBlindedAddress("VTpxFwLujc7Z8ufVaVxz1JJq7wVcmq6dxc4dDVBa9jK1zyHfuTUXQpZAhG4JJjv2DYGTKRW5r39RuHXF", network);
-			Assert.Equal(blinded.ToString(), new BitcoinBlindedAddress(new PubKey("029c293fbb855b709d7af1b696f26b16de06de6746616ebee32aee07be9aadc5f0"), legacy).ToString());
+			Assert.Equal(blinded.ToString(), new BitcoinBlindedAddress(new PubKey("029c293fbb855b709d7af1b696f26b16de06de6746616ebee32aee07be9aadc5f0", network.Hasher), legacy).ToString());
 
 
 			//segwit blinded addresses mainnet
@@ -269,7 +271,7 @@ namespace NBitcoin.Tests
 			blinded = new BitcoinBlindedAddress("lq1qqds20c9qasz0y9fup3wc8xca6ceeyf7e4w6wd9l4qd4vwh887l76gxpk2nm0alc2cn5kwcwhpysle72s6k6w2uhhtgwsltf66", network);
 			var computed =
 				new BitcoinBlindedAddress(
-					new PubKey("0360a7e0a0ec04f2153c0c5d839b1dd6339227d9abb4e697f5036ac75ce7f7fda4"), segwit);
+					new PubKey("0360a7e0a0ec04f2153c0c5d839b1dd6339227d9abb4e697f5036ac75ce7f7fda4", network.Hasher), segwit);
 
 			Assert.Equal(blinded.ToString(), computed.ToString());
 		}
@@ -367,7 +369,7 @@ namespace NBitcoin.Tests
 				builder.StartAll();
 				await node.Generate(builder.Network.Consensus.CoinbaseMaturity + 1).WithDelay(delay);
 				var rpc = node.CreateRPCClient();
-				var alice = new Key().GetBitcoinSecret(builder.Network);
+				var alice = new Key(rpc.Network.Hasher).GetBitcoinSecret(builder.Network);
 				BitcoinAddress aliceAddress = alice.GetAddress(ScriptPubKeyType.Legacy);
 				var txid = rpc.SendToAddress(aliceAddress, Money.Coins(1.0m));
 				if (builder.Network.IsDecred)
@@ -380,7 +382,7 @@ namespace NBitcoin.Tests
 				TransactionBuilder txbuilder = builder.Network.CreateTransactionBuilder();
 				txbuilder.AddCoins(coin);
 				txbuilder.AddKeys(alice);
-				txbuilder.Send(new Key(), Money.Coins(0.4m));
+				txbuilder.Send(new Key(rpc.Network.Hasher), Money.Coins(0.4m));
 				txbuilder.SendFees(Money.Coins(0.001m));
 				txbuilder.SetChange(aliceAddress);
 				var signed = txbuilder.BuildTransaction(false);
@@ -390,7 +392,7 @@ namespace NBitcoin.Tests
 				rpc.SendRawTransaction(signed);
 
 				// Let's try P2SH with 2 coins
-				aliceAddress = alice.PubKey.ScriptPubKey.Hash.GetAddress(builder.Network);
+				aliceAddress = alice.PubKey.ScriptPubKey.Hash(rpc.Network.Hasher).GetAddress(builder.Network);
 				txid = rpc.SendToAddress(aliceAddress, Money.Coins(1.0m));
 				if (builder.Network.IsDecred)
 					await node.Generate(1).WithDelay(delay); // required for tx change to become spendable
@@ -406,7 +408,7 @@ namespace NBitcoin.Tests
 				txbuilder = builder.Network.CreateTransactionBuilder()
 								.AddCoins(new[] { coin.ToScriptCoin(alice.PubKey.ScriptPubKey), coin2.ToScriptCoin(alice.PubKey.ScriptPubKey) })
 								.AddKeys(alice)
-								.SendAll(new Key())
+								.SendAll(new Key(rpc.Network.Hasher))
 								.SendFees(Money.Coins(0.00001m))
 								.SubtractFees()
 								.SetChange(aliceAddress);
@@ -419,7 +421,7 @@ namespace NBitcoin.Tests
 			}
 		}
 
-		[ConditionalNetworkTest(NetworkTestRule.Only, "dcr")]
+		[ConditionalNetworkFact(NetworkTestRule.Only, "dcr")]
 		public void DecredCanSerializeAndDeserializeTx()
 		{
 			var network = Decred.Instance.Testnet;
@@ -468,14 +470,15 @@ namespace NBitcoin.Tests
 				var addr2 = BitcoinAddress.Create(addr, builder.Network).ToString();
 				Assert.Equal(addr, addr2);
 
-				var address = new Key().PubKey.GetAddress(ScriptPubKeyType.Legacy, builder.Network);
+				var address = new Key(builder.Network.Hasher).PubKey.GetAddress(ScriptPubKeyType.Legacy, builder.Network);
 
 				// Test normal address
 				var isValid = ((JObject)node.CreateRPCClient().SendCommand("validateaddress", address.ToString()).Result)["isvalid"].Value<bool>();
 				Assert.True(isValid);
 
 				// Test p2sh
-				address = new Key().PubKey.ScriptPubKey.Hash.ScriptPubKey.GetDestinationAddress(builder.Network);
+				// TODO: ScriptPubKey (Script) can probably hold an hasher.
+				address = new Key(builder.Network.Hasher).PubKey.ScriptPubKey.Hash(builder.Network.Hasher).ScriptPubKey.GetDestinationAddress(builder.Network);
 				isValid = ((JObject)node.CreateRPCClient().SendCommand("validateaddress", address.ToString()).Result)["isvalid"].Value<bool>();
 				Assert.True(isValid);
 			}
@@ -523,7 +526,7 @@ namespace NBitcoin.Tests
 					if (rpc.Capabilities.SupportTaproot)
 					{
 						Assert.True(builder.Network.Consensus.SupportTaproot, "The node RPC support taproot, but Network.Consensus.SupportTaproot is set to false");
-						rpc.SendToAddress(new Key().GetAddress(ScriptPubKeyType.TaprootBIP86, rpc.Network), Money.Coins(1.0m));
+						rpc.SendToAddress(new Key(rpc.Network).GetAddress(ScriptPubKeyType.TaprootBIP86, rpc.Network), Money.Coins(1.0m));
 					}
 					else
 					{
@@ -593,7 +596,7 @@ namespace NBitcoin.Tests
 				builder.StartAll();
 				var rpc = node.CreateRPCClient();
 				await rpc.Generate(builder.Network.Consensus.CoinbaseMaturity + 1).WithDelay(delay);
-				var key = new Key();
+				var key = new Key(builder.Network.Hasher);
 				var addr = key.GetAddress(ScriptPubKeyType.Legacy, builder.Network);
 				var txid = await rpc.SendToAddressAsync(addr, Money.Coins(1.0m));
 				var tx = await rpc.GetRawTransactionAsync(txid);
@@ -614,7 +617,7 @@ namespace NBitcoin.Tests
 		public void CheckForkIdIsUsedDuringSigning()
 		{
 			var n = Altcoins.AltNetworkSets.BCash.Regtest;
-			var key = new Key(Encoders.Hex.DecodeData("1718bce503a08a80ab698ad6e9b5211ed7a232958532877dd1cc67213fa5c4d9"));
+			var key = new Key(n.Hasher, Encoders.Hex.DecodeData("1718bce503a08a80ab698ad6e9b5211ed7a232958532877dd1cc67213fa5c4d9"));
 			var dest = BitcoinAddress.Create("bchreg:qz8d85evkscf7qx3y7pycllwwpyjy8dj7uwryky89l", n);
 			var tx = Transaction.Parse("0200000001766dc30996037844f838a4fc2f214e1fc13c3d65d46221e4d915c8b9b1c002bc0000000048473044022076c1ff7362f4cb50d4a36fb9a72db9ac8c8de4f7de1d9145e8bf8fb667578f4b022051a774e17cd8a0e3d3862985bc860c8fd49202b424d78a3989fae2a3848ba06441feffffff0241101024010000001976a9141686731726f06127a4e0d33a90d7912055582eb188ac00e1f505000000001976a9147bf316ee14ba66ba07bbcaa9ad5d94515acf35fc88ac65000000", n);
 

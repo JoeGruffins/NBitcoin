@@ -40,7 +40,7 @@ namespace NBitcoin.Tests.Generators
 		public static Gen<PSBT> SanePSBT(Network network) =>
 			from inputN in Gen.Choose(1, 8)
 			from scripts in Gen.ListOf(inputN, ScriptGenerator.RandomScriptSig())
-			from txOuts in Gen.Sequence(scripts.Select(sc => OutputFromRedeem(sc)))
+			from txOuts in Gen.Sequence(scripts.Select(sc => OutputFromRedeem(sc, network)))
 			from prevN in Gen.Choose(0, 5)
 			from prevTxs in Gen.Sequence(txOuts.Select(o => TXFromOutput(o, network, prevN)))
 			let txins = prevTxs.Select(tx => new TxIn(new OutPoint(tx.GetHash(), prevN)))
@@ -54,13 +54,13 @@ namespace NBitcoin.Tests.Generators
 				.AddCoins(CoinsToAdd.ToArray())
 				.AddScripts(scriptsToAdd.ToArray())
 			select psbt;
-		private static Gen<TxOut> OutputFromRedeem(Script sc) =>
+		private static Gen<TxOut> OutputFromRedeem(Script sc, Network network) =>
 			from money in MoneyGenerator.Money()
 			from isP2WSH in PrimitiveGenerator.Bool()
 			from isP2SH in PrimitiveGenerator.Bool()
 			where isP2WSH || isP2SH
 			let redeem = (isP2SH && isP2WSH) ? sc.WitHash.ScriptPubKey : sc
-			let scriptPubKey = isP2SH ? redeem.Hash.ScriptPubKey : redeem.WitHash.ScriptPubKey
+			let scriptPubKey = isP2SH ? redeem.Hash(network.Hasher).ScriptPubKey : redeem.WitHash.ScriptPubKey
 			select new TxOut(money, scriptPubKey);
 
 		private static Gen<Transaction> TXFromOutput(TxOut txout, Network network, int vout) =>

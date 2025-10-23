@@ -36,7 +36,7 @@ namespace NBitcoin.Tests
 			foreach (var p in new StringInput("123"))
 				Assert.Contains(p, "123".ToCharArray());
 
-			foreach (var p in new ScriptInput(new Script("OP_ADD OP_EQUALVERIFY")))
+			foreach (var p in new ScriptInput(new Script("OP_ADD OP_EQUALVERIFY"), Network.RegTest.Hasher))
 				Assert.NotNull(p);
 		}
 	}

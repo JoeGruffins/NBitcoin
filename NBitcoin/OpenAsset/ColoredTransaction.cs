@@ -337,7 +337,7 @@ namespace NBitcoin.OpenAsset
 						continue;
 					if (issuanceScriptPubkey == null)
 						throw new ArgumentException("The transaction has an issuance detected, but issuanceScriptPubkey is null.", "issuanceScriptPubkey");
-					issuedAsset = issuanceScriptPubkey.Hash.ToAssetId();
+					issuedAsset = issuanceScriptPubkey.Hash(tx.GetConsensusFactory()).ToAssetId();
 				}
 				entry.Asset = new AssetMoney(issuedAsset, entry.Asset.Quantity);
 				Issuances.Add(entry);

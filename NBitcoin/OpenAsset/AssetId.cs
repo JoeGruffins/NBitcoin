@@ -19,8 +19,8 @@ namespace NBitcoin.OpenAsset
 			_Bytes = new byte[] { 0 };
 		}
 
-		public AssetId(IDestination assetScriptPubKey)
-			: this(assetScriptPubKey.ScriptPubKey)
+		public AssetId(IDestination assetScriptPubKey, IHasher hasher)
+			: this(assetScriptPubKey.ScriptPubKey, hasher)
 		{
 			if (assetScriptPubKey == null)
 				throw new ArgumentNullException(nameof(assetScriptPubKey));
@@ -33,8 +33,8 @@ namespace NBitcoin.OpenAsset
 			_Bytes = assetId.AssetId._Bytes;
 		}
 
-		public AssetId(Script assetScriptPubKey)
-			: this(assetScriptPubKey.Hash)
+		public AssetId(Script assetScriptPubKey, IHasher hasher)
+			: this(assetScriptPubKey.Hash(hasher))
 		{
 			if (assetScriptPubKey == null)
 				throw new ArgumentNullException(nameof(assetScriptPubKey));

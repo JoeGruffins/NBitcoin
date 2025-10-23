@@ -65,7 +65,7 @@ namespace NBitcoin.Tests
 		public void DoNotThrowFormatExceptionIfNetworkInformationNotPresentInBase58()
 		{
 			Network network = Network.TestNet;
-			var encryptedPrivateKey = new Key().GetEncryptedBitcoinSecret("abc123", network).ToString();
+			var encryptedPrivateKey = new Key(network.Hasher).GetEncryptedBitcoinSecret("abc123", network).ToString();
 			Key key = Key.Parse(encryptedPrivateKey, "abc123", network);
 		}
 
@@ -73,7 +73,7 @@ namespace NBitcoin.Tests
 		[Trait("UnitTest", "UnitTest")]
 		public void KeyParseWorksOnBothTypeOfEncryptedKey()
 		{
-			var encryptedkey = new Key().GetEncryptedBitcoinSecret("abc", Network.Main);
+			var encryptedkey = new Key(Network.Main.Hasher).GetEncryptedBitcoinSecret("abc", Network.Main);
 			Key.Parse(encryptedkey.ToString(), "abc", Network.Main);
 
 			var code = new BitcoinPassphraseCode("abc", Network.Main, null);
@@ -214,7 +214,7 @@ namespace NBitcoin.Tests
 				var result = code.GenerateEncryptedSecret(compressed);
 				Assert.True(result.ConfirmationCode.Check("test", result.GeneratedAddress));
 				Assert.False(result.ConfirmationCode.Check("toto", result.GeneratedAddress));
-				Assert.False(result.ConfirmationCode.Check("test", new Key().PubKey.GetAddress(ScriptPubKeyType.Legacy, Network.Main)));
+				Assert.False(result.ConfirmationCode.Check("test", new Key(Network.Main.Hasher).PubKey.GetAddress(ScriptPubKeyType.Legacy, Network.Main)));
 
 				var decryptedKey = result.EncryptedKey.GetKey("test");
 				Assert.Equal(result.GeneratedAddress.ToString(), decryptedKey.PubKey.GetAddress(ScriptPubKeyType.Legacy, Network.Main).ToString());

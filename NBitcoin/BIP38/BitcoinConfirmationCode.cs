@@ -91,7 +91,7 @@ namespace NBitcoin
 			//Derive passfactor using scrypt with ownerentropy and the user's passphrase and use it to recompute passpoint 
 			byte[] passfactor = BitcoinEncryptedSecretEC.CalculatePassFactor(passphrase, LotSequence, OwnerEntropy);
 			//Derive decryption key for pointb using scrypt with passpoint, addresshash, and ownerentropy
-			byte[] passpoint = BitcoinEncryptedSecretEC.CalculatePassPoint(passfactor);
+			byte[] passpoint = BitcoinEncryptedSecretEC.CalculatePassPoint(passfactor, Network.Hasher);
 			byte[] derived = BitcoinEncryptedSecretEC.CalculateDecryptionKey(passpoint, AddressHash, OwnerEntropy);
 
 			//Decrypt encryptedpointb to yield pointb
@@ -109,7 +109,7 @@ namespace NBitcoin
 #if HAS_SPAN
 			if (!NBitcoinContext.Instance.TryCreatePubKey(pointb, out var pk) || pk is null)
 				return false;
-			PubKey pubkey = new PubKey(pk.TweakMul(passfactor), true);
+			PubKey pubkey = new PubKey(pk.TweakMul(passfactor), true, Network.Hasher);
 #else
 			var curve = ECKey.Secp256k1;
 			ECPoint pointbec;
@@ -125,7 +125,7 @@ namespace NBitcoin
 			{
 				return false;
 			}
-			PubKey pubkey = new PubKey(pointbec.Multiply(new BigInteger(1, passfactor)).GetEncoded());
+			PubKey pubkey = new PubKey(pointbec.Multiply(new BigInteger(1, passfactor)).GetEncoded(), Network.Hasher);
 #endif
 			//and hash it into address using either compressed or uncompressed public key methodology as specifid in flagbyte.
 			pubkey = IsCompressed ? pubkey.Compress() : pubkey.Decompress();

@@ -12,7 +12,6 @@ namespace NBitcoin
 		public BitcoinSecret(Key key, Network network)
 			: base(ToBytes(key), network)
 		{
-			this.PubKey.Hash160 = network.Hash160;
 		}
 
 		private static byte[] ToBytes(Key key)
@@ -55,7 +54,7 @@ namespace NBitcoin
 		{
 			get
 			{
-				return _Key ?? (_Key = new Key(vchData, 32, IsCompressed));
+				return _Key ?? (_Key = new Key(Network.Hasher, vchData, 32, IsCompressed));
 			}
 		}
 		#endregion
