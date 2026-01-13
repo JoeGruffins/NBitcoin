@@ -576,7 +576,7 @@ namespace NBitcoin.Tests
 				txId = await rpc.SendToAddressAsync(address, sendAmount);
 
 				// 3. Make sure if we don't include the mempool into the database the txo will not be considered utxo
-				getTxOutResponse = await rpc.GetTxOutAsync(txId, 0, false);
+				getTxOutResponse = await rpc.GetTxOutAsync(txId, 0, 0, false);
 				Assert.Null(getTxOutResponse);
 
 				// 4. Find the output index we want to check
@@ -592,7 +592,7 @@ namespace NBitcoin.Tests
 				Assert.NotEqual(-1, index);
 
 				// 5. Make sure the expected amounts are received for unconfirmed transactions
-				getTxOutResponse = await rpc.GetTxOutAsync(txId, index, true);
+				getTxOutResponse = await rpc.GetTxOutAsync(txId, index, 0, true);
 				Assert.NotNull(getTxOutResponse); // null if spent
 				Assert.Equal(blockHashes.Last(), getTxOutResponse.BestBlock);
 				Assert.Equal(0, getTxOutResponse.Confirmations);
