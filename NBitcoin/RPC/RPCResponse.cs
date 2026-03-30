@@ -18,6 +18,11 @@ namespace NBitcoin.RPC
 			Code = (RPCErrorCode)((int)error.GetValue("code"));
 			Message = (string)error.GetValue("message");
 		}
+		public RPCError(RPCErrorCode code, string message)
+		{
+			Code = code;
+			Message = message;
+		}
 		public RPCErrorCode Code
 		{
 			get;
@@ -46,6 +51,11 @@ namespace NBitcoin.RPC
 				Error = new RPCError(error);
 			}
 			Result = json.GetValue("result") as JToken;
+		}
+		public RPCResponse(JToken result, RPCError error)
+		{
+			Result = result;
+			Error = error;
 		}
 		public RPCError Error
 		{
