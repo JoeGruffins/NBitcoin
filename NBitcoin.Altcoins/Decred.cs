@@ -760,7 +760,7 @@ namespace NBitcoin.Altcoins
 				using (var hs = this.CreateHashStream())
 				{
 					var stream = new BitcoinStream(hs, true);
-					this.serialize(stream, TxSerializeType.OnlyWitness);
+					serialize(stream, this.Version, TxSerializeType.OnlyWitness, this.Inputs, this.Outputs, this.LockTime, this.Expiry);
 					return hs.GetHash();
 				}
 			}
@@ -788,7 +788,7 @@ namespace NBitcoin.Altcoins
 						// not available.
 						sType = TxSerializeType.NoWitness;
 					}
-					this.serialize(stream, sType);
+					serialize(stream, this.Version, sType, this.Inputs, this.Outputs, this.LockTime, this.Expiry);
 				}
 				else
 				{
@@ -796,67 +796,67 @@ namespace NBitcoin.Altcoins
 				}
 			}
 
-			private void serialize(BitcoinStream stream, TxSerializeType serializeType)
+			private static void serialize(BitcoinStream stream, uint version, TxSerializeType serializeType, List<TxIn> inputs, List<TxOut> outputs, LockTime lockTime, uint expiry)
 			{
 				// The serialized encoding of the version includes the real transaction
 				// version in the lower 16 bits and the transaction serialization type
 				// in the upper 16 bits.
-				ushort version = (ushort)this.Version, sType = (ushort)serializeType;
-				stream.ReadWrite(ref version);
+				ushort ver = (ushort)version, sType = (ushort)serializeType;
+				stream.ReadWrite(ref ver);
 				stream.ReadWrite(ref sType);
 
 				switch (serializeType)
 				{
 					case TxSerializeType.NoWitness:
-						this.encodePrefix(stream);
+						encodePrefix(stream, inputs, outputs, lockTime, expiry);
 						break;
 
 					case TxSerializeType.OnlyWitness:
-						this.encodeWitness(stream);
+						encodeWitness(stream, inputs);
 						break;
 
 					case TxSerializeType.Full:
-						this.encodePrefix(stream);
-						this.encodeWitness(stream);
+						encodePrefix(stream, inputs, outputs, lockTime, expiry);
+						encodeWitness(stream, inputs);
 						break;
 				}
 			}
 
-			private void encodePrefix(BitcoinStream stream)
+			private static void encodePrefix(BitcoinStream stream, List<TxIn> inputs, List<TxOut> outputs, LockTime lockTime, uint expiry)
 			{
-				var txInCount = (ulong)this.Inputs.Count;
+				var txInCount = (ulong)inputs.Count;
 				stream.ReadWriteAsVarInt(ref txInCount);
 
-				for (int i = 0; i < this.Inputs.Count; i++)
+				for (int i = 0; i < inputs.Count; i++)
 				{
-					DecredTxIn input = (DecredTxIn)this.Inputs[i];
+					DecredTxIn input = (DecredTxIn)inputs[i];
 					stream.ReadWrite(input.PrevOut); // prevout (hash and index)
 					stream.ReadWriteBytes([input.PrevOutTree]); // prevout tree
 					stream.ReadWrite(input.Sequence); // sequence
 				}
 
-				var txOutCount = (uint)this.Outputs.Count;
+				var txOutCount = (uint)outputs.Count;
 				stream.ReadWriteAsVarInt(ref txOutCount);
 
 				for (int i = 0; i < txOutCount; i++)
 				{
-					DecredTxOut output = (DecredTxOut)this.Outputs[i];
+					DecredTxOut output = (DecredTxOut)outputs[i];
 					stream.ReadWrite(output.Value); // value
 					stream.ReadWrite((ushort)output.Version); // version
 					stream.ReadWrite(output.ScriptPubKey); // script
 				}
 
-				stream.ReadWrite(this.LockTime.Value); // locktime
-				stream.ReadWrite(this.Expiry); // expiry
+				stream.ReadWrite(lockTime.Value); // locktime
+				stream.ReadWrite(expiry); // expiry
 			}
 
-			private void encodeWitness(BitcoinStream stream)
+			private static void encodeWitness(BitcoinStream stream, List<TxIn> inputs)
 			{
-				var txInCount = (uint)this.Inputs.Count;
+				var txInCount = (uint)inputs.Count;
 				stream.ReadWriteAsVarInt(ref txInCount);
 				for (int i = 0; i < txInCount; i++)
 				{
-					DecredTxIn input = (DecredTxIn)this.Inputs[i];
+					DecredTxIn input = (DecredTxIn)inputs[i];
 					stream.ReadWrite(input.Value); // ValueIn
 					stream.ReadWrite(input.Height); // BlockHeight
 					stream.ReadWrite(input.Index); // BlockIndex
@@ -1027,15 +1027,84 @@ namespace NBitcoin.Altcoins
 
 			public override uint256 GetSignatureHash(Script scriptCode, int nIn, SigHash nHashType, TxOut spentOutput, HashVersion sigversion, PrecomputedTransactionData precomputedTransactionData)
 			{
-				// TODO: Correctly handle hash types.
+				// The SigHashSingle signature type signs only the corresponding
+				// input and output (the output with the same index number as
+				// the input).
+				//
+				// Since transactions can have more inputs than outputs, this
+				// means it is improper to use SigHashSingle on input indices
+				// that don't have a corresponding output.
+				if (nHashType == SigHash.Single && nIn >= this.Outputs.Count)
+					throw new Exception($"attempt to sign single input at index {nIn} >= {this.Outputs.Count} outputs");
+
+				// Choose the inputs that will be committed to based on the signature
+				// hash type.
+				//
+				// SigHashAll (and undefined signature hash types):
+				//   Commits to all inputs.
+				// SigHashNone:
+				//   Commits to all inputs. All input sequences except the
+				//   input being signed are replaced by 0.
+				// SigHashSingle:
+				//   Like SigHashNone, all input sequences except the
+				//   input being signed are replaced by 0.
+				// SigHashAnyOneCanPay:
+				//   Commits to only the input being signed.
+				var txIns = new List<TxIn>(this.Inputs);
+				var signTxInIdx = nIn;
+				switch (nHashType)
+				{
+					case SigHash.None:
+					case SigHash.Single:
+						for (int i = 0; i < txIns.Count; i++)
+						{
+							if (i != signTxInIdx)
+								txIns[i].Sequence = 0;
+						}
+						break;
+
+					case SigHash.AnyoneCanPay:
+						txIns = txIns.GetRange(nIn, 1);
+						signTxInIdx = 0;
+						break;
+				}
+
+				// Choose the outputs to commit to based on the signature hash
+				// type.
+				//
+				// As the names imply, SigHashNone commits to no outputs and
+				// SigHashSingle commits to the single output that corresponds
+				// to the input being signed.  However, SigHashSingle is also a
+				// bit special in that it commits to cleared out variants of all
+				// outputs prior to the one being signed.  This is required by
+				// consensus due to legacy reasons.
+				//
+				// All other signature hash types, such as SighHashAll commit to
+				// all outputs. Note that this includes undefined hash types as well.
+				var txOuts = this.Outputs;
+				switch (nHashType)
+				{
+					case SigHash.None:
+						txOuts = null;
+						break;
+					case SigHash.Single:
+						txOuts = [.. this.Outputs.GetRange(0, nIn + 1)];
+						for (int i = 0; i < txOuts.Count - 1; i++)
+						{
+							txOuts[i].Value = new Money(-1L);
+							txOuts[i].ScriptPubKey = null;
+						}
+						break;
+				}
+
 				var hs = this.CreateHashStream();
 				var stream = new BitcoinStream(hs, true);
-				this.serialize(stream, TxSerializeType.NoWitness);
+				serialize(stream, this.Version, TxSerializeType.NoWitness, txIns, txOuts, this.LockTime, this.Expiry);
 				var prefixHash = hs.GetHash();
 
 				hs = this.CreateHashStream();
 				stream = new BitcoinStream(hs, true);
-				this.serializeSpecificInputWitnessData(stream, scriptCode, nIn);
+				serializeInputWitnessData(stream, this.Version, txIns, scriptCode, nIn);
 				var witnessHash = hs.GetHash();
 
 				hs = this.CreateHashStream();
@@ -1048,24 +1117,21 @@ namespace NBitcoin.Altcoins
 				return sigHash;
 			}
 
-			private void serializeSpecificInputWitnessData(BitcoinStream stream, Script scriptCode, int nIn)
+			private static void serializeInputWitnessData(BitcoinStream stream, uint version, List<TxIn> inputs, Script scriptCode, int nIn)
 			{
-				// Serialize the version and serialization type values. This is
-				// an unorthodox serialization, so don't use any of the known
-				// serialization types.
-				var knownSerializationTypes = (ushort[])Enum.GetValues(typeof(TxSerializeType));
-				var randomSerializationType = knownSerializationTypes.Max() + 1;
-				ushort version = (ushort)this.Version, sType = (ushort)randomSerializationType;
-				stream.ReadWrite(ref version);
+				// Serialize the version and serialization type values.
+				ushort ver = (ushort)version;
+				ushort sType = 3; // SigHashSerializeWitness
+				stream.ReadWrite(ref ver);
 				stream.ReadWrite(ref sType);
 
 				// Serialize inputs witness data, using an empty script for
 				// inputs at index != nIn.
-				var txInCount = (uint)this.Inputs.Count;
+				var txInCount = (uint)inputs.Count;
 				stream.ReadWriteAsVarInt(ref txInCount);
 				for (int i = 0; i < txInCount; i++)
 				{
-					var script = new Script();
+					Script script = null;
 					if (i == nIn)
 						script = scriptCode;
 					stream.ReadWrite(ref script);
